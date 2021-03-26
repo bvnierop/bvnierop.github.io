@@ -1,40 +1,30 @@
-# Welcome to Jekyll!
-#
-# This config file is meant for settings that affect your whole blog, values
-# which you are expected to set up once and rarely edit after that. If you find
-# yourself editing this file very often, consider using Jekyll's data files
-# feature for the data you need to update frequently.
-#
-# For technical reasons, this file is *NOT* reloaded automatically when you use
-# 'bundle exec jekyll serve'. If you change this file, please restart the server process.
-#
-# If you need help with YAML syntax, here are some quick references for you: 
-# https://learn-the-web.algonquindesign.ca/topics/markdown-yaml-cheat-sheet/#yaml
-# https://learnxinyminutes.com/docs/yaml/
-#
-# Site settings
-# These are used to personalize your new site. If you look in the HTML files,
-# you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
-# You can create any custom variable you would like, and they will be accessible
-# in the templates via {{ site.myvariable }}.
+remote_theme: bvnierop/hyde
 
-header_pages:
-  - index.markdown
-  - contact.markdown
-style: dark
-
-footer: © Copyright 2021, Bart van Nierop
-
-title: bvnierop
+title:            Bart van Nierop
+tagline:          'lifelong learner, problem solver and tinkerer'
 description: >-
-  Personal website and blog of Bart van Nierop about programming
-baseurl: ""
-url: "https://bvnierop.nl"
+  Hi, I'm Bart. I'm a lifelong learner, problem solver and tinkerer.
+  Oh... and I also develop software occasionally.
+
+url:              'https://bvnierop.nl'
+baseurl:          ''
+
+author:
+  name:           'Bart van Nierop'
+  picture:        '/img/photo.jpeg'
+
+paginate:         5
+
+collections:
+  - external_links
 
 # Build settings
-remote_theme: b2a3e8/jekyll-theme-console
 plugins:
+  - jekyll-remote-theme
   - jekyll-feed
+  - jekyll-paginate
+  - jekyll-gist
+  - jekyll-sitemap
 
 # Exclude from processing.
 # The following items will not be processed, by default.
