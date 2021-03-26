@@ -48,7 +48,9 @@ it's on GitHub Pages, so I'm going to have to go with a Javascript based
 solution.
 
 I want categories. I want _see also_. I want series of posts. I want comments. I
-want an RSS feed. Perhaps I should do something about SEO. 
+want an RSS feed. Perhaps I should do something about SEO.
+
+Maybe I want posts in a subdirectory so that it's better for future permalinks.
 
 And I wanted content. I wanted content ready _before_ going live for real. So
 that I could schedule that.
