@@ -18,6 +18,9 @@ paginate:         5
 collections:
   - external_links
 
+analytics:
+  goat_counter: bvnierop
+
 # Build settings
 plugins:
   - jekyll-remote-theme
