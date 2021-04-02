@@ -1,6 +1,6 @@
 ---
 layout: post
-title: How I Learned To Let Go And Just Ship
+title: How I Learned To Let Go And Ship It
 date: 2021-03-26 +0100
 categories:
 ---
