@@ -9,7 +9,7 @@ let jekyll_env = bundlerEnv rec {
   };
 in
   stdenv.mkDerivation rec {
-    name = "2021-03-26-test-jekyll";
+    name = "2021-03-26-jekyll";
     buildInputs = [ jekyll_env bundler ruby ];
 
     shellHook = ''
