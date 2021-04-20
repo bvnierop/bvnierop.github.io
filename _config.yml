@@ -1,5 +1,8 @@
 remote_theme: bvnierop/hyde
 
+permalink:        pretty
+relative_url:     true
+
 title:            Bart van Nierop
 tagline:          'lifelong learner, problem solver and tinkerer'
 description: >-
