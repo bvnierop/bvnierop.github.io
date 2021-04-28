@@ -30,7 +30,10 @@ This post details how I set this up on my Pop!_OS system.
 ## Enabling org-protocol
 Since [org-roam-protocol][org-roam-protocol]{:target="_blank" rel="nofollow
 noopener noreferrer"} depends on `org-protocol`, that must first be enabled. In
-your config, after loading `org`, add `(require 'org-roam-protocol)`.
+your config, after loading `org`, add `(require 'org-protocol)`.
+
+`org-roam-protocol` extends `org-protocol` and needs to be loaded as well. After
+loading `org-roam`, add `(require 'org-roam-protocol)`.
 
 ## Deskop application
 Next we need to create a desktop application for `emacsclient`. This is
