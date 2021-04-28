@@ -2,7 +2,7 @@
 layout: post
 title: How I Learned To Let Go And Ship It
 date: 2021-03-26 +0100
-categories:
+tags: [misc]
 ---
 
 In early February I decided that maybe I should start a Jekyll based website,

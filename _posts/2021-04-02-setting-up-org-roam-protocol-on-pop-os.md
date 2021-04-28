@@ -2,7 +2,7 @@
 layout: post
 title: Setting up org-roam-protocol on Pop!_OS
 date: 2021-04-02 +0100
-categories:
+tags: [org-roam, org-protocol, pop!_os]
 ---
 
 A few weeks ago I started using [org-roam][roam-github]{:target="_blank"
