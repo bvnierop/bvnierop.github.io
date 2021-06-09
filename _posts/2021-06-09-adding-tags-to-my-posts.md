@@ -1,0 +1,136 @@
+---
+layout: post
+title: Adding tags to my posts
+date: 2021-06-09 +0100
+tags: [jekyll]
+---
+
+In [How I learned to let go and ship it][ship-it] I wrote that I still needed to
+add categories, or tags, to posts. This post details how I've done that.
+
+## Categories or tags
+In Jekyll there's a difference between categories and tags. The main difference
+is that, by default, categories are part of the posts url, while tags
+aren't. Personally I prefer the latter for organisation, so tags it is.
+
+## Adding tags to post metadata
+My [theme][hyde], by default, shows the publish date of a post below the
+title. It's in that line that I'd like to show tags.
+
+Step one is to add the tags to the posts page. Here's what the line looked like
+before:
+
+{%highlight liquid %}
+{% raw %}
+<span class="post-date">{{ post.date | date_to_string }}</span>
+{% endraw %}
+{% endhighlight %}
+
+And here's what it looks like after:
+{% highlight liquid linenos %}
+{% raw %}
+<span class="post-date">
+  &#x1F5D3; {{ date | date_to_string }}
+  {% for tag in post.tags %}
+    {% if forloop.first %}&#x1f3f7;{% endif %}
+    <a href="/tags/#{{ tag }}">{{ tag }}</a>
+    {% unless forloop.last %}| {% endunless %}
+  {% endfor %}
+</span>
+{% endraw %}
+{% endhighlight %}
+
+There's a lot going on here, so let's look at this more closely:
+
+| line | what it does                                                                                        |
+|:-----|:----------------------------------------------------------------------------------------------------|
+| 2.   | This is basically the original code. It shows the date. It's prefixed with a unicode calendar icon. |
+| 3.   | Loop over the tags.                                                                                 |
+| 4.   | If it's the first iteration, display a unicode tag icon.                                            |
+| 5.   | Display the tag, as a link to the tags page.                                                        |
+| 6.   | If it's _not_ the last iteration, display a separator.                                              |
+
+Of course, this snippet exists twice. Once for the post details (as shown above)
+and once for the index page. The differences are minor. Really the only thing
+that's different is that instead of the word `post` the index page uses the word
+`page`.
+
+## Extracting it to a layout
+Of course, having this code in two places makes it prone to fail if I ever want
+to add something else, or change something. So the next step is to extract it to
+something reusable:
+
+{% highlight liquid %}
+{% raw %}
+{% if post %}
+  {% assign date = post.date %}
+  {% assign tags = post.tags %}
+{% else %}
+  {% assign date = page.date %}
+  {% assign tags = page.tags %}
+{% endif %}
+<span class="post-date">
+  &#x1F5D3; {{ date | date_to_string }}
+  {% if tags.size > 0 %}
+    {% for tag in tags %}
+      {% if forloop.first %}&#x1f3f7;{% endif %}
+      <a href="/tags/#{{ tag }}">{{ tag }}</a>
+      {% unless forloop.last %}| {% endunless %}
+    {% endfor %}
+  {% endif %}
+</span>
+{% endraw %}
+{% endhighlight %}
+
+The big change is, of course, that we assign some variables from either `post`
+_or_ `page` and then work off those variables. And now in our post details and
+on our index page we can use `{% raw %}{% include post_meta.html %}{% endraw %}`.
+
+## Adding a tags page
+As we saw earlier, each tag is a link to a _tags_ page. We still have to make
+that page. Below is the entire thing. It iterates over every tag and then over
+every post for that tag, listing all.
+
+{% highlight liquid %}
+{% raw %}
+---
+layout: page
+---
+
+<div id="tags" class="tags">
+  {% for tag in site.tags %}
+  {% capture tag_name %}{{ tag | first }}{% endcapture %}
+  <div id="#{{ tag_name }}" class="tag">
+    <a name="{{ tag_name }}"></a>
+    <h2>{{ tag_name }}</h2>
+    {% for post in site.tags[tag_name] %}
+    <article>
+      {{ post.date | date_to_string }}..........<a href="{{ post.url }}">{{ post.title }}</a>
+    </article>
+    {% endfor %}
+  </div>
+{% endfor %}
+</div>
+{% endraw %}
+{% endhighlight %}
+
+## Extracting _that_ to a layout
+Because I've made all this part of my theme and I don't want to add the code for
+the tags page to the source code of this website, I've pulled this code in
+layout by moving it to `_layouts/tags.html`. I can now create it by creating a
+page called `tags.html`  with the only content being:
+
+{% highlight liquid %}
+---
+layout: tags
+title: Tags
+---
+{% endhighlight %}
+
+## Still shipping fast - Related posts still ignore tags
+There are some more things that I want to do with tags, such as basing related
+posts on them, but that takes a bit more investment. I'm still [letting go and
+shipping][ship-it], so for now it's just tags.
+
+  [ship-it]: {% post_url 2021-03-26-how-i-learned-to-let-go-and-ship-it %}
+  [hyde]: https://github.com/bvnierop/hyde
