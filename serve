@@ -1,0 +1,29 @@
+#!/bin/bash
+
+function kill_server() {
+  if [[ -f ".server_pid" ]]
+  then
+    echo "Killing server"
+    cat ".server_pid" | xargs kill
+    rm ".server_pid"
+  fi
+}
+
+function start_server() {
+  if [[ -f ".server_pid" ]]
+  then
+    kill_server
+  fi
+
+  echo "Starting server"
+  bundle exec jekyll serve --watch --draft "$@" > serve.log 2> serve_error.log &
+  PID="$!"
+  echo "$PID" > ".server_pid"
+}
+
+if [[ "$1" == "--kill" ]]
+then
+  kill_server
+else
+  start_server "$@"
+fi
