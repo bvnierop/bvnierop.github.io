@@ -1,0 +1,65 @@
+#+TODO: TODO(t) DOING(n) | DONE(d)
+
+* Functional
+** DOING Staging [#A]
+*** TODO Differ between staging / production CNAME
+*** DONE Set up url
+*** DONE Add Robots.txt [#A]
+I only care about robots.txt for staging.
+** DONE Analytics [#A]
+** DONE Publish script [#A]
+Simple steps:
+- Run build script
+- Copy output folder to git repo on the right branch
+- Publish
+** TODO Add tag support [#C]
+** TODO Add RSS [#B]
+** TODO Re-add ToC with usable anchor names [#C]
+** TODO Link paths without .html without index.html [#B]
+** TODO Self-host css [#C]
+I kind of want to replace the footer with just a copyright notice.
+** DONE Footer [#A]
+** DONE Paths without .html [#A]
+** DONE Add CNAME [#A]
+** DONE Separately export index.html [#A]
+This prevents a datetime to be added
+** DONE Add dates to post subtitle [#B]
+** DONE Remove ToC
+** DONE Remove heading numbers
+** DONE 404 [#A]
+** DONE Stop double exporting of posts [#A]
+** DONE Title of blog archive [#B]
+* Content
+** TODO Improve ~index.html~ [#B]
+*** TODO Introductory text [#B]
+*** TODO Dates on post names [#B]
+** TODO Better headline [#B]
+** DOING Improve sitemap [#B]
+*** TODO List last five posts in last-posts.org [#B]
+*** DONE Don't publish last-posts.org
+*** DONE Don't use tree structure 
+*** DONE Have a history of all posts in posts/index.org [#B]
+** DONE Have a drafts system [#A]
+** DONE Improve blog base page [#A]
+** DONE Add more links to sidebar [#A]
+** Posts
+*** TODO GZipStream use
+*** TODO Base64UrlEncoding caveat
+
+* Theme
+** Overhaul
+Maybe I /do/ like the current look & feel. No redesign yet. Of course, I already
+redesigned.
+
+I don't really like the current look & feel. So I want to make something
+different. But going live first is important, so I can redesign this later.
+*** TODO Redesign
+Probably base on https://nicolas.petton.fr/
+
+
+* Links
+- https://github.com/taingra/blog/blob/master/publish.el
+- https://github.com/dmacvicar/site.org/blob/master/publish.el
+- https://www.taingram.org/blog/org-mode-blog.html
+- https://duncan.codes/posts/2019-09-03-migrating-from-jekyll-to-org/index.html
+- https://gongzhitaao.org/orgcss/

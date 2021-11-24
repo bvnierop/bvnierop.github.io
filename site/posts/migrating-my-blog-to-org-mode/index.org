@@ -1,0 +1,116 @@
+#+title: Migrating my blog to org-mode
+#+date: [2021-10-15 Fri]
+#+filetags: blog org-mode
+#+draft: t
+
+Some time ago I started this mostly inactive blog. There are several reasons for
+that inactivity, but one that stands out is the workflow. I don't like the
+limitations imposed on me by the combination of Jekyll, Github Pages and
+Markdown.
+
+Furthermore I do almost all of my editing in Emacs. I keep my notes in
+[[https://github.com/org-roam/org-roam][org-roam]]. All in all, writing my posts in org-mode rather than in Markdown makes
+sense.
+
+This posts documents my steps.
+	
+* Requirements
+The first step is determining what I need to do. I want mostly feature parity
+with my existing blog.
+** Musts
+- Porting my posts to org-mode
+- Exporting my posts
+- No urls ending with ~.html~
+- index.html with a few posts and navigation to older posts
+- Similar layouts
+- Support for tags
+- Some analytics
+** Nice
+- RSS feed
+- Sitemap
+- Archive (one page with all posts)
+- Search widget
+
+** Issues encountered while developing
+- The 'os' part of Pop!_OS looks offset.
+- No syntax coloring
+* The great migration
+** Porting my posts
+Thankfully I did not yet have many posts. I ported all of my posts by hand. My
+first post, ~2021-02-02-first-post.md~:
+
+#+begin_src markdown
+---
+layout: post
+title: First post
+date: 2021-02-02 +0100
+tags: [misc]
+---
+
+Here goes nothing...
+#+end_src
+
+Now becomes ~first-post.org~:
+#+begin_src org
+#+title: First post
+#+date: [2021-02-02 Tue]
+#+filetags: misc
+
+Here goes nothing...
+#+end_src
+
+** Exporting my posts
+To export my posts I need to of course be able to reach them. Since I'll be
+generating the real index file later, I'll start with a simple ~index.org~ that
+references the other files. That way I can link them.
+
+*** One step building
+In order to build in one step I'll create a file called ~publish.el~ and invoke
+that from a bash script called ~build~.
+
+*** Exporting the posts
+Org-mode comes with a very powerful [[https://orgmode.org/manual/Publishing.html][publishing system]] which I'll use to convert
+my org files to html.
+
+I start by setting up a /project/ and publishing that.
+
+#+begin_src emacs-lisp
+  (require 'ox-publish)
+  (let ((org-publish-project-alist
+         (list
+          (list "blog"                                    ;; name of the project
+                :base-directory "./org"                   ;; directory to take files from
+                :base-extension "org"                     ;; only take files with this extension
+                :publishing-directory "./publish"         ;; output directory
+                :recursive t                              ;; parse recursively, otherwise only index.org would be parsed
+                :publishing-function 'org-html-publish-to-html)))) ;; publish as html
+    (org-publish "blog"))
+#+end_src
+
+This is the most basic project required. And it works. It doesn't look very
+good, though. One issue that immediately pops up is that files don't always
+rebuild. Only changed files do. This is quite cool at a first glance, but it
+only looks at the /source/ file. If I delete ~publish~, I cannot recreate it
+without saving all of my ~org~ files. I can solve that by setting
+~org-publish-use-timestamps-flag~ to ~nil~
+
+*** Watching the result
+In order to watch the result, we need to start a webserver in the ~publish~
+directory that was just created. Easy enough:
+
+#+begin_src bash
+python3 -m http.server
+#+end_src
+
+It looks horrible, but it all works.
+
+** No urls ending with .html
+While possible to replicate Jekyll's behaviour here, it's a bit of work that I
+don't really care to invest. I only have a few posts. I can live with them
+moving.
+
+** A new ~index.html~
+
+* Link dump
+- https://www.taingram.org/blog/org-mode-blog.html
+- https://duncan.codes/posts/2019-09-03-migrating-from-jekyll-to-org/

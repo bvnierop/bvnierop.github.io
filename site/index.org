@@ -1,0 +1,8 @@
+#+title: Home
+
+Hi, I'm Bart. I'm a lifelong learner, problem solver and tinkerer. Oh... and I
+also develop software occasionally. This page deserves a better text, but I
+don't have one yet.
+
+* Posts
+#+INCLUDE: posts/last-posts.org
