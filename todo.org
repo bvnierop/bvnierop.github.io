@@ -1,8 +1,12 @@
 #+TODO: TODO(t) DOING(n) | DONE(d)
 
+* Technical
+** TODO Fork dependencies
+** TODO Self-host css [#C]
+I kind of want to replace the footer with just a copyright notice.
 * Functional
-** DOING Staging [#A]
-*** TODO Differ between staging / production CNAME
+** DONE Staging [#A]
+*** DONE Differ between staging / production CNAME
 *** DONE Set up url
 *** DONE Add Robots.txt [#A]
 I only care about robots.txt for staging.
@@ -16,8 +20,6 @@ Simple steps:
 ** TODO Add RSS [#B]
 ** TODO Re-add ToC with usable anchor names [#C]
 ** TODO Link paths without .html without index.html [#B]
-** TODO Self-host css [#C]
-I kind of want to replace the footer with just a copyright notice.
 ** DONE Footer [#A]
 ** DONE Paths without .html [#A]
 ** DONE Add CNAME [#A]
