@@ -35,7 +35,7 @@ This prevents a datetime to be added
 * Content
 ** TODO Improve ~index.html~ [#B]
 *** TODO Introductory text [#B]
-*** TODO Dates on post names [#B]
+*** DONE Dates on post names [#B]
 ** TODO Better headline [#B]
 ** DOING Improve sitemap [#B]
 *** TODO List last five posts in last-posts.org [#B]
@@ -45,20 +45,15 @@ This prevents a datetime to be added
 ** DONE Have a drafts system [#A]
 ** DONE Improve blog base page [#A]
 ** DONE Add more links to sidebar [#A]
-** Posts
-*** TODO GZipStream use
-*** TODO Base64UrlEncoding caveat
-
-* Theme
-** Overhaul
-Maybe I /do/ like the current look & feel. No redesign yet. Of course, I already
-redesigned.
-
-I don't really like the current look & feel. So I want to make something
-different. But going live first is important, so I can redesign this later.
-*** TODO Redesign
-Probably base on https://nicolas.petton.fr/
-
+* Posts
+** TODO GZipStream use
+** TODO Base64UrlEncoding caveat
+** TODO Something about Racket
+** TODO Something about F#
+** TODO Something about building your own Lisp
+** TODO Levels of abstraction
+I implemented a requirement several dozen levels deep in a call stack. It's nice
+that it was one line there, but it also doesn't really belong that deep in logic.
 
 * Links
 - https://github.com/taingra/blog/blob/master/publish.el
