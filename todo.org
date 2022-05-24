@@ -4,6 +4,7 @@
 ** TODO Fork dependencies
 ** TODO Self-host css [#C]
 I kind of want to replace the footer with just a copyright notice.
+** DONE Favicon
 * Functional
 ** DONE Staging [#A]
 *** DONE Differ between staging / production CNAME

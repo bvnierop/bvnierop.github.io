@@ -69,7 +69,18 @@
 (setq org-html-head
       "<link rel=\"stylesheet\" href=\"https://use.fontawesome.com/releases/v5.15.4/css/all.css\" integrity=\"sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm\" crossorigin=\"anonymous\"> \
        <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/light.css\"> \
-       <link rel=\"stylesheet\" href=\"/css/style.css\">"
+       <link rel=\"stylesheet\" href=\"/css/style.css\"> \
+	  \
+      <!-- Icons --> \
+      <link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/img/icons/apple-touch-icon.png\"> \
+      <link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"/img/icons/favicon-32x32.png\"> \
+      <link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"/img/icons/favicon-16x16.png\"> \
+      <link rel=\"manifest\" href=\"/img/icons/site.webmanifest\"> \
+      <link rel=\"mask-icon\" href=\"/img/icons/safari-pinned-tab.svg\" color=\"#5bbad5\"> \
+      <link rel=\"shortcut icon\" href=\"/img/icons/favicon.ico\"> \
+      <meta name=\"msapplication-TileColor\" content=\"#da532c\"> \
+      <meta name=\"msapplication-config\" content=\"/img/icons/browserconfig.xml\"> \
+      <meta name=\"theme-color\" content=\"#ffffff\">"
       )
 
 ;; Source coloring
@@ -110,6 +121,7 @@
              :sitemap-style 'list
              :sitemap-title " "
              :sitemap-sort-files 'anti-chronologically)
+
        (list "posts-index"
              :base-directory "./working-copy/posts"
              :base-extension "org"
@@ -126,6 +138,7 @@
              :sitemap-function 'bvn/publish-last-posts-sitemap
              :sitemap-format-entry 'bvn/sitemap-format-entry
              :sitemap-sort-files 'anti-chronologically)
+
        (list "pages"
              :base-directory "./working-copy"
              :base-extension ""
@@ -143,6 +156,7 @@
              :html-preamble-format (format-pre/postamble "preamble.html")
              :html-postamble t
              :html-postamble-format (format-pre/postamble "postamble.html"))
+
        (list "assets"
              :base-directory "./working-copy"
              :base-extension "css\\|png\\|jpg"
