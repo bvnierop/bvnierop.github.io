@@ -1,0 +1,53 @@
+#+title: Advent Of Code 2022
+#+date: [2022-11-18 Fri]
+#+filetags: fsharp advent-of-code
+
+In the past few years I've participated in [[https://adventofcode.com][Advent of Code]] in order to learn a
+radically new programming language. Taken from the website, "Advent of Code is
+an Advent calendar of small programming puzzles for a variety of skill sets and
+skill levels that can be solved in any programming language you like. People use
+them as a speed contest, interview prep, company training, university
+coursework, practice problems, or to challenge each other."
+
+It started with Common Lisp (twice), then OCaml, followed by Elixir and last
+year Typed Racket.
+
+Trying a new programming language every year leads to interesting results. First
+of all, it teaches me a new language, including a different way of thinking. But
+it also means that rather than solving the problem, I'm often busy solving my
+lack of knowledge of the language. These results in relatively simple problems
+taking a long time to solve.
+
+The result of that is that I've yet to finish a complete edition of Advent of Code.
+
+* Slightly different
+This year is going to be slightly different. I'm still picking a language I've
+not (really) used before. Unlike the past five years, however, it's not going to
+be as radically different.
+
+My language of choice is going to be F#. Like OCaml it's based on ML, and like
+OCaml it's multi paradigm. It's also based on the .NET ecosystem, which I'm
+already familiar with.
+
+Also different from previous years is that I'll be less strict in following the
+language's preferred paradigms when solving a problem. That means that I'll be
+allowed to write code with mutation and exceptions and being imperative, rather
+than trying to write (close to) pure functional code.
+
+Then, after a problem is solved, I can look at other people's solution using
+similar languages and refactor and adjust my code.
+
+* The plan
+As time permits I'll try to solve every problem on the day that it's published
+and write a short post about it. On the weekends I'll look to improve my code
+and formalize my learnings about the language in another post.
+
+* First things first
+Over the years I've built some basic tooling around my participation in Advent
+of Code. These are some command line tools that help download the input, prepare
+solution templates and run solutions for various days using various different
+input files. I tend to rewrite those in the language I am using that year and be
+prepared before the event starts.
+
+In the next post I'll discuss the process of writing these in F#.
+
