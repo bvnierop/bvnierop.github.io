@@ -1,0 +1,160 @@
+#+title: Advent Of Code 2022 - Day 01
+#+date: [2022-12-01 Thu]
+#+filetags: fsharp advent-of-code
+
+It's december. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language if F#.
+
+* Day 01: Calorie Counting
+Summary: Given a list of groups of numbers, each number on a new line and each
+group separated by an empty line, give the largest sum.
+
+Example input:
+
+#+begin_src txt
+100
+200
+
+400
+
+500
+300
+
+#+end_src
+
+Find the full description [[https://adventofcode.com/2022/day/1][here]].
+
+Day 1 is often straight forward. Nice and easy to get in the groove. This year
+that's no different. Summing a list of numbers isn't very difficult, nor is
+finding a maxium value. Given the groups, that would look something like this:
+
+#+begin_src fsharp
+let groups = [[100; 200]; [400]; [500; 300]]
+groups
+|> Seq.map Seq.sum
+|> Seq.max
+#+end_src
+
+Getting the groups turned out to be trickier than I'd liked, which has something
+to do with the way I tend to set up my working environment for Advent of
+Code. Experience teaches me that, 9 out of 10 times, I want to parse /lines/
+rather than the raw input. So I've abstracted that away. The signature of my
+~solve~ functions look like this:
+
+#+begin_src fsharp
+solve: input: (string list) -> 'a
+#+end_src
+
+Most languages I've used so far for Advent of Code, F# included, do not have a
+built-in function to split a list of things based on a predicate. String
+splitting does usually exist. The straightforward way to get the groups
+therefore would have been:
+
+#+begin_src fsharp
+// assume input is a newline separated string
+// like described in the problem statement
+input.Split("\n\n")
+|> Seq.map (fun s -> s.Split("\n"))
+|> Seq.map (Seq.map Int32.Parse)
+#+end_src
+
+Instead I ended up stealing a ~splitBy~ function and using that, resulting in
+the final solution for part one:
+
+#+begin_src fsharp
+let splitBy fn seq =
+    let i = ref 0
+    seq
+    |> Seq.groupBy (fun e ->
+        if fn e then incr i
+        !i)
+    |> Seq.map snd
+        
+let caloriesPerElf input = 
+    input
+    |> splitBy ((=) "")
+    |> Seq.map (Seq.filter ((<>) ""))
+    |> Seq.map (Seq.map Int32.Parse)
+    |> Seq.map Seq.sum
+
+let solve1 (input: string list) =
+    input
+    |> caloriesPerElf
+    |> Seq.max
+#+end_src
+
+* Part 2
+Part two asks us to, instead of finding the maximum sum, to find the sum of the
+three maximum sums. So instead of taking the maximum, we order the list of sums
+(largest first), take the first three elements and take the sum of that.
+
+#+begin_src fsharp
+let solve2 (input: string list) =
+	  input
+    |> caloriesPerElf
+    |> Seq.orderByDescending
+    |> Seq.take 3
+    |> Seq.sum
+#+end_src
+
+* Improvements
+There are some things that can be improved here.
+
+** splitBy
+Both ~incr~ and ~!~ turn out to be [[https://github.com/fsharp/fslang-design/blob/main/FSharp-6.0/FS-1111-refcell-op-information-messages.md][deprecated]]. Also, the function keeps the
+element that's being used as a separator. Finally, it would be much nicer if
+~splitBy~ would be part of the ~Seq~ module.
+
+We can do all that and make it nice and reusable.
+
+#+begin_src fsharp
+module Seq
+
+let splitOn predicate source =
+    let mutable i = 0
+    source
+    |> Seq.groupBy (fun e ->
+        if predicate e then i <- i + 1
+        i)
+    |> Seq.map snd
+        
+let reject predicate source = Seq.filter (predicate >> not) source
+
+let splitOnExclusive predicate source =
+    let mutable i = 0
+    source
+    |> Seq.groupBy (fun e ->
+        if predicate e then
+            i <- i + 1
+            -1
+        else
+            i)
+    |> reject (fun (idx, _) -> idx = -1)
+    |> Seq.map snd
+#+end_src
+
+~caloriesPerElf~ the also looks a lot nicer.
+
+#+begin_src fsharp
+let caloriesPerElf input = 
+    input
+    |> Seq.splitOnExclusive ((=) "")
+    |> Seq.map (Seq.map Int32.Parse)
+    |> Seq.map Seq.sum
+#+end_src
+
+** Input
+Another improvement is to determine wether to pass a list of lines or the raw
+string input to the solver based on the signature of the solver function. But
+that is an exercise for another time.
+
+* Reflection
+When looking at other people's solutions after submittin	g my own, I realised
+that I never even considered building the list of lists in a more imperative
+way. Even though that comes more natural to me and F# has full support for
+it. Whether that's a good thing or not, is up for debate.
