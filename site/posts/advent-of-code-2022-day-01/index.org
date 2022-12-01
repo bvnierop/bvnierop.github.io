@@ -2,7 +2,7 @@
 #+date: [2022-12-01 Thu]
 #+filetags: fsharp advent-of-code
 
-It's december. Time for snow, slippery roads, hot chocolate and cozy fire
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
 places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
 programming puzzles, growing progressively more difficult.
 
@@ -154,7 +154,7 @@ string input to the solver based on the signature of the solver function. But
 that is an exercise for another time.
 
 * Reflection
-When looking at other people's solutions after submittin	g my own, I realised
+When looking at other people's solutions after submitting my own, I realised
 that I never even considered building the list of lists in a more imperative
 way. Even though that comes more natural to me and F# has full support for
 it. Whether that's a good thing or not, is up for debate.
