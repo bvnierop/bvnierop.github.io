@@ -1,0 +1,137 @@
+#+title: Advent Of Code 2022 - Day 02
+#+date: [2022-12-02 Fri]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 02: Rock Paper Scissors
+Summary: Given a list of games of Rock Paper Scissors, determine who wins. Award
+points of choice for Rock (1), Paper (2) or Scissors (3) and for winning (6),
+drawing (3) or losing (0). Give the sum of the points of all the games.
+
+Input is given as two characters per line. The first character represents the
+opponent's choice, the second one the player's. The first character is one of
+"A" (Rock), "B" (Paper) or "C" (Scissors). The second is one of "X" (Rock), "Y"
+(Paper) or "Z" (Scissors).
+
+#+begin_src txt
+A Y
+B X
+C Z
+#+end_src
+
+Find the full description [[https://adventofcode.com/2022/day/2][here]].
+	
+Taking a hint from [[file:../advent-of-code-2022-day-01/index.org][yesterday]]'s reflection that an imperative solution that
+perhaps cuts some corners never crossed my mind, today I went for a very dirty
+imperative solution, hard coding where I can.
+
+The game of Rock Paper Scissors has nine possible outcomes.
+
+|---------------------------+------+-------+----------|
+| Below plays against right | Rock | Paper | Scissors |
+|---------------------------+------+-------+----------|
+| Rock                      | Draw | Loss  | Win      |
+|---------------------------+------+-------+----------|
+| Paper                     | Win  | Draw  | Loss     |
+|---------------------------+------+-------+----------|
+| Scissors                  | Loss | Win   | Draw     |
+|---------------------------+------+-------+----------|
+
+This means we can loop over the lines, hardcode every possible input and add the
+scores together.
+
+#+begin_src fsharp
+let solve1 (input: string list) =
+    let mutable score = 0
+    for line in input do
+        match line.Split(" ") with
+        | [|"A"; "X"|] -> score <- score + 1 + 3
+        | [|"A"; "Y"|] -> score <- score + 2 + 6
+        | [|"A"; "Z"|] -> score <- score + 3 + 0
+        | [|"B"; "X"|] -> score <- score + 1 + 0
+        | [|"B"; "Y"|] -> score <- score + 2 + 3
+        | [|"B"; "Z"|] -> score <- score + 3 + 6
+        | [|"C"; "X"|] -> score <- score + 1 + 6
+        | [|"C"; "Y"|] -> score <- score + 2 + 0
+        | [|"C"; "Z"|] -> score <- score + 3 + 3
+        | _ -> failwith "Impossible move"
+    score
+#+end_src
+
+* Part 2
+Summary: It turns out that "X", "Y" and "Z" means something different. It means
+that we have to Lose ("X"), Draw ("Y") or Win ("Z") against the opponent's move.
+
+Had I used a different strategy to implement the first part, part two may have
+required some new logic. However, despite the meaning of "X", "Y" and "Z"
+changing, the game still has the same nine states. We just have to look at a
+different dimension.
+
+#+begin_src fsharp
+let solve2 (input: string list) =
+    let mutable score = 0
+    for line in input do
+        match line.Split(" ") with
+        | [|"A"; "X"|] -> score <- score + 3 + 0
+        | [|"A"; "Y"|] -> score <- score + 1 + 3
+        | [|"A"; "Z"|] -> score <- score + 2 + 6
+        | [|"B"; "X"|] -> score <- score + 1 + 0
+        | [|"B"; "Y"|] -> score <- score + 2 + 3
+        | [|"B"; "Z"|] -> score <- score + 3 + 6
+        | [|"C"; "X"|] -> score <- score + 2 + 0
+        | [|"C"; "Y"|] -> score <- score + 3 + 3
+        | [|"C"; "Z"|] -> score <- score + 1 + 6
+        | _ -> failwith "Impossible move"
+    score
+#+end_src
+
+* Improvements
+I thought long and hard about if I want to change anything. Maybe add types for
+the choices and outcomes. In the end that may /look/ nicer but doesn't really
+add something.
+
+Despite that, there are still two improvements to be made. First of all,
+splitting the line and matching the resulting array is not necessary. We can
+just match any of the nine possible input strings.
+
+Second is the mutation. After scoring the stars I do want to switch to a more
+functional style.
+
+Combining both improvements, the solution looks like this:
+
+#+begin_src fsharp
+let solve1 (input: string list) =
+    List.fold (fun score (line: string) ->
+        match line with
+        | "A X" -> score + 1 + 3
+        | "A Y" -> score + 2 + 6
+        | "A Z" -> score + 3 + 0
+        | "B X" -> score + 1 + 0
+        | "B Y" -> score + 2 + 3
+        | "B Z" -> score + 3 + 6
+        | "C X" -> score + 1 + 6
+        | "C Y" -> score + 2 + 0
+        | "C Z" -> score + 3 + 3
+        | _ -> failwith "Impossible move") 0 input
+#+end_src
+
+* Reflection
+Solving today's problem quick and dirty was definitely faster than if I hard
+tried with with ~List.fold~ immediately, or if I had added types for both choice
+and outcome, and small functions that determine the outcome based on choice as
+well as the other way around.
+
+It feels a bit conflicted. On the one hand there's the competetive aspect of
+Advent of Code for which this is completely fine. On the other hand there's the
+goal of writing code in a programming languange that I don't use very
+often. Part of that goal is making that language's good practices my own.
+
+Those two aspects collide here, as I suspect they will continue to do throughout
+the next problems.
