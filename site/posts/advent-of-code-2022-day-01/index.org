@@ -8,7 +8,7 @@ programming puzzles, growing progressively more difficult.
 
 Every year I participate in a programming language I did not use for Advent of
 Code before, in order to learn new ways of doing things and to challenge
-myself. This year, that language if F#.
+myself. This year, that language is F#.
 
 * Day 01: Calorie Counting
 Summary: Given a list of groups of numbers, each number on a new line and each
@@ -138,7 +138,7 @@ let splitOnExclusive predicate source =
     |> Seq.map snd
 #+end_src
 
-~caloriesPerElf~ the also looks a lot nicer.
+~caloriesPerElf~ then also looks a lot nicer.
 
 #+begin_src fsharp
 let caloriesPerElf input = 
@@ -158,3 +158,4 @@ When looking at other people's solutions after submitting my own, I realised
 that I never even considered building the list of lists in a more imperative
 way. Even though that comes more natural to me and F# has full support for
 it. Whether that's a good thing or not, is up for debate.
+	
