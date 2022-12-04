@@ -1,0 +1,133 @@
+#+title: Advent Of Code 2022 - Day 04
+#+date: [2022-12-04 Sun]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 03: Camp Cleanup
+Summary: In a list where each line has two ranges, count for how many lines the
+ranges are completely overlapping
+Example input:
+
+#+begin_src txt
+2-9,5-6
+1-2,3-4
+#+end_src
+
+Find the full description [[https://adventofcode.com/2022/day/4][here]].
+
+Another problem that can be solved with sets today. The numbers may be larger
+than the single digits examples, but not so large that using sets becomes
+prohibitive. Checking range overlap isn't that difficult though, so I wrote my
+own solution.
+
+A range overlaps another range completely if the lowest value of that range is
+equal to or lower than the lowest value of the other range, and the highest
+value is higher than or equal to the highest value of the other range.
+
+If we represent the range as a pair of integers, here's what that looks like:
+
+#+begin_src fsharp
+let isFullyOverlapping range1 range2 =
+    match (range1, range2) with
+    | ((l1, h1), (l2, h2)) when l1 <= l2 && h1 >= h2 -> true
+    | ((l1, h1), (l2, h2)) when l2 <= l1 && h2 >= h1 -> true
+    | _ -> false
+#+end_src
+
+Then we can simply count the lines for which this is true.
+
+Parsing the ranges may seem a bit daunting, as there's a lot of fluff in the
+input. Thinking for a
+
+Parsing the ranges may seem a bit daunting, as there's a lot of fluff in the
+input. This happens in many Advent of Code of problems. My personal preference
+for parsing such input would be something that behaves like C's ~scanf~ (without
+its issues). F# doesn't have that. For now, though, we can just split the line
+on the two fluff characters and convert the result to integers.
+
+#+begin_src fsharp
+let parse (line: string) =
+    match line.Split([|',';'-'|]) with
+    | [|a;b;c;d|] -> ((Int32.Parse(a), Int32.Parse(b)),
+                      (Int32.Parse(c), Int32.Parse(d)))
+    | _ -> failwith $"Invalid input: {line}"
+#+end_src
+
+Combining this:
+
+#+begin_src fsharp
+let solve1 (input: string list) =
+    input
+    |> List.map parse
+    |> List.filter (fun (r1, r2) -> isFullyOverlapping r1 r2)
+    |> List.length
+#+end_src
+
+
+* Part 2
+Summary: For part two we are asked to /also/ count pairs of ranges that
+partially overlap.
+
+This is precisely the same as part 1 except for the function that determines
+overlap. Determine a partial overlap is a bit more complex than determining a
+full overlap.
+
+Two ranges overlap if one range begins or ends in the other. In code, here's how
+that looks:
+
+#+begin_src fsharp
+let isPartlyOverlapping range1 range2 = 
+    match (range1, range2) with
+    | ((l1, h1), (l2, h2)) when l1 <= l2 && l2 <= h1 -> true // range2 begins in range1
+    | ((l1, h1), (l2, h2)) when l1 <= h2 && h2 <= h1 -> true // range2 ends in range1
+    | ((l1, h1), (l2, h2)) when l2 <= l1 && l1 <= h2 -> true // range1 begins in range2
+    | ((l1, h1), (l2, h2)) when l2 <= h1 && h1 <= h2 -> true // range1 ends in range2
+    | _ -> false
+#+end_src
+
+* Improvements
+Part two becomes easier once we realize that we can also look for pairs of
+ranges that have /no overlap at all/ and negate that condition.
+
+Two ranges have no overlap at all if the highest value of range ~a~ is lower
+than the lowest value of range ~b~, or vice versa.
+
+Feeling like there must be a better way than writing all those ~List.map~'s, I
+grouped a few of them a single function.
+
+#+begin_src fsharp
+let isDisjoint range1 range2 =
+    match (range1, range2) with
+    | ((l1, h1), (l2, h2)) when h2 < l1 -> true
+    | ((l1, h1), (l2, h2)) when h1 < l2 -> true
+    | _ -> false
+#+end_src
+
+** List.countWhere
+Many Advent of Code problems require in one way or another to count for how many
+elements in a list, a condition is true.
+
+So far I've implemented this as ~List.filter condition |> List.length~, but
+doing this every time becomes cumbersome. So I created a tiny library function,
+~countWhere~, which combines the two.
+
+#+begin_src fsharp
+let countWhere predicate = List.filter predicate >> List.length
+#+end_src
+
+* Reflection
+The problem today wasn't very difficult, but I didn't really like the parsing
+part. This is something I run into almost every year. The languages I've picked
+make parsing more cumbersome than I'd like. Sure, regular expressions and back
+references  are more robust than ~scanf~, but (to me) Advent of Code is not
+about writing a robust parser, it's about solving the problems.
+
+I had sort of decided to look into using a parser generator to parse today, but
+I could not find the motivation to do so. Better luck next time!
