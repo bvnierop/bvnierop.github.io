@@ -27,7 +27,7 @@ In the string ~aAccbB~ the character ~c~ occurs on both sides. It has priority 3
 points. In ~BbaacC~ the character ~a~ occurs on both sides. It has
 priority 1. Summing those priorities results in ~4~.
 
-Find the full description [[https://adventofcode.com/2022/day/3][here]]
+Find the full description [[https://adventofcode.com/2022/day/3][here]].
 
 Some of the built-ins in F# make this problem relatively easy. Splitting a
 string exactly in half can be done by treating it as a list of characters and

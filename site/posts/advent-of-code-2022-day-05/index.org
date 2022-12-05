@@ -1,0 +1,328 @@
+#+title: Advent Of Code 2022 - Day 05
+#+date: [2022-12-05 Mon]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 05: Supply Stacks
+Summary: Given a number of stacks of crates and a list of moves in the form
+/move N from X to Y/, determine which crates are on top of each stack after
+performing all the moves.
+
+Example input:
+
+#+begin_src txt
+    [D]    
+[N] [C]    
+[Z] [M] [P]
+ 1   2   3 
+
+move 1 from 2 to 1
+move 3 from 1 to 3
+move 2 from 2 to 1
+move 1 from 1 to 2
+#+end_src
+
+Crates can only be moved one at a time, so moving a set of N crates will put
+them on top of another stack in reverse order.
+
+Find the full description [[https://adventofcode.com/2022/day/5][here]].
+
+Yesterday I talked about parsing being cumbersome in some Advent of Code
+problems and how I /wanted/ to look into a parser combinator to make parsing
+easier, but didn't.
+
+At least half of today's problem is a parsing problem. The input is nice and
+visual, but annoying to parse.
+
+** Parsing the input
+The input can be separated into two parts. Moves and crates. Starting with the
+easier one, moves, we see how ~scanf~-like parsing would be very nice
+here. Alas, it doesn't exist in F#. A hackier solution is to split each line
+into words, convert them to integers (which will fail for the words), select only
+the ones for which conversion succeeds and put them into a nice data structure.
+
+#+begin_src fsharp
+type Move = {
+    Count: int;
+    Src: int;
+    Dst: int;
+}
+
+let parseMoveLine (line: string) =
+    match line.Split(" ") |> Array.choose parseIntOpt with
+    | [|count;src;dst|] -> { Count = count; Src = src - 1; Dst = dst - 1 }
+    | _ -> failwith $"Failed to parse move line: {line}"
+#+end_src
+
+The crates are more annoying, mostly because not all stacks have the same
+height. You cannot visually /see/ it, but thankfully the lines with missing
+crates /are not truncated/. They have the same length as the other lines.
+
+Each spot is represented by three characters. A missing crate is represented by
+three spaces. A crate has the form `[identifier]` and finally a stack identifier
+is just a number surrounded by spaces. We don't have to parse the stack
+identifiers, but we also won't run into any problems if we just identify them as
+crates.
+
+Each of the individual pieces is separated from the others with a space. There
+are various ways to hack together a parser for this. My way was to replace the
+three spaces representing an empty crate with `[-]`, then remove all occurrences
+of `[` and `]` and finally split on space, removing empty entries.
+
+#+begin_src fsharp
+let parseContainerLine (line: string) =
+    line.Replace("    ", " [-]")
+        .Replace("[", " ")
+        .Replace("]", " ")
+        .Split(" ", StringSplitOptions.RemoveEmptyEntries)
+#+end_src
+
+We aren't there yet. This gives us /horizontal/ lists of crates, but we need
+vertical ones. Taking a hint from myself from earlier this Advent of Code /and/
+wanting to move on to solve the actual problem I hacked something together with
+mutation. I determined the amount of stacks, made an array of that width seeded
+with empty lists and built the stacks one line at a time. We have to start at
+the last line, because we want the tops to be the heads of the list.
+
+#+begin_src fsharp
+let parseContainerLines (lines: string list) =
+    let asSegments = lines |> List.map parseContainerLine
+    let len = Array.length asSegments[0]
+    let stacks = Array.init len (fun _ -> [])
+    let filledStacks =
+        List.foldBack (fun (elt: string array) stacks ->
+            let mutable x = stacks
+            for i = 0 to len - 1 do
+                x <- (Array.updateAt i (elt[i] :: stacks[i]) x)
+            x) asSegments stacks
+    Array.map (List.reject ((=) "-")) filledStacks
+#+end_src
+
+Not pretty, but it works. We have to end by removing the crates with `"-"` as
+their identifier, because those were used as placeholders for missing crates.
+
+** Solving the problem
+With the parsing solved we can now solve the problem: perform moves on the
+stacks of crates in order to determine which crates end up on top of each stack
+after the set of moves has been completed.
+
+Lists in F# behave like stacks. It's cheap to add/remove items at the
+front. Since the problem statement says that we can only move one crate at a
+time, that's exactly what we do. We take the first item of the source stack and
+prepend it to the destination stack. Once again with mutation because I couldn't
+really wrap my head around mapping / folding.
+
+#+begin_src fsharp
+let step (move: Move) (stacks: string list array) =
+    let mutable newStacks = stacks
+    for i = 0 to move.Count - 1 do
+        let container = List.head newStacks[move.Src]
+        newStacks <- Array.updateAt move.Dst (container :: newStacks[move.Dst]) newStacks
+        newStacks <- Array.updateAt move.Src (List.tail newStacks[move.Src]) newStacks
+    newStacks
+#+end_src
+
+Getting the tops and glueing it all together is an exercise for the reader.
+
+* Part 2
+Summary: Instead of only being able to move one crate at a time, for part two we
+have to move the amount of crates in every instruction simultaneously, in order.
+
+That's a small change that actually simplifies the ~step~ function. Since we
+have to preserve the order we can do it in one step, taking N items from the
+head of the source stack and prepending them to the destination stack.
+
+#+begin_src fsharp
+let step2 (move: Move) (stacks: string list array) =
+    let mutable newStacks = stacks
+    let containers = List.take move.Count newStacks[move.Src]
+    newStacks <- Array.updateAt move.Src (List.skip move.Count newStacks[move.Src]) newStacks
+    newStacks <- Array.updateAt move.Dst (List.append containers newStacks[move.Dst]) newStacks
+    newStacks
+#+end_src
+
+* Improvements
+Everything done, almost all of it sucks in my opinion. It's hacky, ugly and full
+of mutation. The goal is achieved. Scoring stars is more important than nice
+code, but I'm also here to learn. So let's improve, shall we?
+
+** Merge the two ~step~ functions
+The loop in the first ~step~ function may hide it, but ~step~ and ~step2~ are
+nearly identical. We can remove the loop from ~step~ and instead reverse the set
+of N crates taken from the front of the source list.
+
+If the only difference is /reverse or not reverse/ we can turn ~step~ into a
+higher order function, passing a transformation function as we go.
+
+#+begin_src fsharp
+let step reorder (move: Move) (stacks: string list array) =
+    let mutable newStacks = stacks
+    let containers = List.take move.Count newStacks[move.Src] |> reorder
+    newStacks <- Array.updateAt move.Src (List.skip move.Count newStacks[move.Src]) newStacks
+    newStacks <- Array.updateAt move.Dst (List.append containers newStacks[move.Dst]) newStacks
+    newStacks
+#+end_src
+
+** Remove mutation
+The worst offenders are ~step~ and ~parseContainerLines~, but I also had
+mutation in my original ~solve~:
+
+#+begin_src fsharp
+let solve1 (input: string list) =
+    let (stacks, moves) = parseInput input
+    let mutable mutableStacks = stacks
+    for move in moves do
+        mutableStacks <- step move mutableStacks
+    getTopOfStacks mutableStacks
+#+end_src
+
+We begin by removing the mutation in ~step~. While we're at it, we will also
+reorder the arguments so that we can pass ~step~ as an argument to
+~List.fold~. That way we can also fix the mutation in ~solve~.
+
+#+begin_src fsharp
+let step reorder (stacks: string list array) move =
+    let containers = List.take move.Count stacks[move.Src] |> reorder
+    stacks
+    |> Array.updateAt move.Src (List.skip move.Count stacks[move.Src])
+    |> Array.updateAt move.Dst (List.append containers stacks[move.Dst])
+
+[<AocSolver(2022, 5, Level = 1)>]
+let solve1 (input: string list) =
+    let (stacks, moves) = parseInput input
+    moves
+    |> List.fold step stacks
+    |> getTopOfStacks
+#+end_src
+
+Like many ~for~-loops and a mutating variable, we can get rid of that in
+~parseContainerLines~ by transforming it into a ~List.fold~:
+
+#+begin_src fsharp
+let parseContainerLines (lines: string list) =
+    let asSegments = lines |> List.map parseContainerLine
+    let len = Array.length asSegments[0]
+    let stacks = Array.init len (fun _ -> [])
+    let filledStacks =
+        List.foldBack (fun (elt: string array) stacks ->
+            [0..len-1]
+            |> List.fold (fun stacks i -> Array.updateAt i (elt[i] :: stacks[i]) stacks) stacks)
+            asSegments stacks
+    Array.map (List.reject ((=) "-")) filledStacks
+#+end_src
+
+** Discover ~List.transpose~
+It turns out that F# has a built-in function for transposing a list of
+lists. It's conveniently called ~transpose~ and makes our life a lot easier.
+
+#+begin_src fsharp
+let parseContainerLines (lines: string list) =
+    lines
+    |> List.map parseContainerLine
+    |> List.transpose
+    |> List.toArray
+    |> Array.map (List.reject ((=) "-"))
+#+end_src
+
+Gone is the nested unreadable fold.
+
+** Parser combinator
+The above changes make the code a lot better, but all things considered the
+parsing code is still hacky. We can do better. And we should.
+
+[[https://www.quanttec.com/fparsec/][FParsec]] is a parser combinator library for F# and we'll use it to make the
+parsing for this problem significantly nicer.
+
+Once again, the input consists of two parts. This time we'll work top to bottom.
+
+*** Parsing crates
+As observed above, each crate is either represented by three spaces or by
+`[identifer]` or for the last line that we don't care about, by a number
+surrounded by spaces.
+
+We'll write a parser for a single crate that returns ~None~ for a missing crate
+and ~Some identifier~ for crates.
+
+#+begin_src fsharp
+let parseEmptyCrate = pstring "   " >>% None
+let parseSingleCrate = (skipAnyChar >>. anyString 1 .>> skipAnyChar) |>> Some
+let parseCrate = parseEmptyCrate <|> parseSingleCrate
+#+end_src
+
+The ~>>%~ operator runs the parser before it and returns the result of the
+function after. The ~<|>~ operator parses one or the other.
+
+The ~.>>~, ~>>.~ and ~.>>.~ operators combine the parsers around them. The
+period (~.~) indicates that the result on that side will be returned. The other
+result will be ignored.
+
+With the parser for a single crate done, let's extend it to a full line. Since
+we no longer convert missing crates to ~[-]~ we need a slightly different
+function to form our stacks. ~List.choose~ discards any elements that are ~None~
+so it leaves us with only existing crates.
+
+#+begin_src fsharp
+let cratesToStacks crates =
+    crates
+    |> List.transpose
+    |> List.map (List.choose id)
+    |> List.toArray
+    
+let parseCrates = sepBy parseCrate (pchar ' ')
+let parseCrateLine = parseCrates .>> skipNewline
+let parseStacks = (manyTill parseCrateLine newline) |>> cratesToStacks
+#+end_src
+
+~manyTill~ runs the first parser many times, until the second parser
+passes. When it does, it's consumed. This means that the newline separating the
+crates and the commands is consumed by ~parseStacks~.
+
+*** Parsing commands
+Parsing a single move is a bit more verbose than I'd like, still not beating the
+~scanf~-like syntax that I prefer, but it /is/ very straight forward. ~pipe3~
+takes three parsers as arguments, performs them in succession and calls the
+provided function with the results. We use it to build the same ~Move~ type as
+before.
+
+#+begin_src fsharp
+let parseMove =
+    pipe3 (skipString "move " >>. pint32)
+          (skipString " from " >>. pint32)
+          (skipString " to " >>. pint32)
+          (fun a b c -> {Count = a; Src = b - 1; Dst = c - 1})
+#+end_src
+
+Parsing a line with a command is slightly more involved than for crates because
+the input file /does not end with a newline/. Therefore a line containing a
+command can end either with a newline /or/ with eof.
+
+#+begin_src fsharp
+let parseMoveLine = parseMove .>> (skipNewline <|> eof)
+#+end_src
+
+*** Parsing the full input
+Bringing it all together we parse both the stacks and many commands.
+
+#+begin_src fsharp
+let parseInput =  parseStacks .>>. many parseMoveLine
+#+end_src
+
+The result of running this parser is the same as the original parse function, so
+no other code has to change.
+
+* Reflection
+Today was a very hacky day with a lot of ugly code and annoying parsing. It took
+quite some effort to clean it all up. More than I'd like. But I'm happy with the
+final result.
+
+I learned about a parser combinator framework. Discovered ~List.transpose~ and
+got some more practice in refactoring away ~for~-loops and mutation.
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day05.fs][GitHub]].
