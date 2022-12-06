@@ -66,15 +66,15 @@ height. You cannot visually /see/ it, but thankfully the lines with missing
 crates /are not truncated/. They have the same length as the other lines.
 
 Each spot is represented by three characters. A missing crate is represented by
-three spaces. A crate has the form `[identifier]` and finally a stack identifier
+three spaces. A crate has the form ~[identifier]~ and finally a stack identifier
 is just a number surrounded by spaces. We don't have to parse the stack
 identifiers, but we also won't run into any problems if we just identify them as
 crates.
 
 Each of the individual pieces is separated from the others with a space. There
 are various ways to hack together a parser for this. My way was to replace the
-three spaces representing an empty crate with `[-]`, then remove all occurrences
-of `[` and `]` and finally split on space, removing empty entries.
+three spaces representing an empty crate with ~[-]~, then remove all occurrences
+of ~[~ and ~]~ and finally split on space, removing empty entries.
 
 #+begin_src fsharp
 let parseContainerLine (line: string) =
@@ -105,7 +105,7 @@ let parseContainerLines (lines: string list) =
     Array.map (List.reject ((=) "-")) filledStacks
 #+end_src
 
-Not pretty, but it works. We have to end by removing the crates with `"-"` as
+Not pretty, but it works. We have to end by removing the crates with ~"-"~ as
 their identifier, because those were used as placeholders for missing crates.
 
 ** Solving the problem
@@ -244,7 +244,7 @@ Once again, the input consists of two parts. This time we'll work top to bottom.
 
 *** Parsing crates
 As observed above, each crate is either represented by three spaces or by
-`[identifer]` or for the last line that we don't care about, by a number
+~[identifer]~ or for the last line that we don't care about, by a number
 surrounded by spaces.
 
 We'll write a parser for a single crate that returns ~None~ for a missing crate

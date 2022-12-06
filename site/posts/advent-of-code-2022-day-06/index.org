@@ -1,0 +1,99 @@
+#+title: Advent Of Code 2022 - Day 06
+#+date: [2022-12-06 Tue]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 06: Tuning Trouble
+Summary: Given a string, find the first location where four different characters
+have occurred in succession.
+
+Example input:
+
+#+begin_src txt
+ababcdefgabababa
+#+end_src
+
+In this example input the first sequence of four different characters is ~abcd~
+which ends at position ~6~.
+
+Find the full description [[https://adventofcode.com/2022/day/6][here]].
+
+In order to find the first sequence of four different characters we have to look
+at every subsequence of four characters and determine if they are unique. My
+input was 4096 characters, so that's easily quick enough.
+
+#+begin_src txt
+1. [a b a b]c d e f g a b a b a b a 
+2.  a[b a b c]d e f g a b a b a b a 
+3.  a b[a b c d]e f g a b a b a b a 
+#+end_src
+
+After the third step we have found the unique sequence.
+
+In F# we find a built-in function to do just this, ~List.windowed~, which
+returns every subsequence of size ~n~ in order.
+
+There are various ways to check if a subsequence is unique. We can convert the
+subsequence to a set and check its length. Or we can check the length of
+~List.distinct~. I went for the latter.
+
+In order to find the /first/ such sequence we can call ~List.findIndex~ on the
+result of ~List.windowed~.
+
+Finally, because the question asks where the sequence /ends/, we have to add the
+length of the subsequence we're looking for to that index.
+
+Combined, here's how that looks:
+#+begin_src fsharp
+input
+|> Seq.windowed 4
+|> Seq.findIndex (fun window -> Seq.distinct window |> Seq.length = 4)
+|> ((+) 4)
+#+end_src
+
+* Part 2
+Summary: Instead of finding the first sequence of four different characters,
+find the first sequence of fourteen different characters.
+
+Since the input is quite small the same method is still easily fast enough. All
+we have to do is change some numbers.
+
+#+begin_src fsharp
+input
+|> Seq.windowed 14
+|> Seq.findIndex (fun window -> Seq.distinct window |> Seq.length = 14)
+|> ((+) 14)
+#+end_src
+
+
+* Improvements
+With so little code there's also very little to improve. All I changed was
+abstract into a single method, taking the size of the subsequence as an
+argument:
+
+#+begin_src fsharp
+let findFirstUniqueSubsequence n seq =
+    seq
+    |> Seq.windowed n
+    |> Seq.findIndex (fun window -> Seq.distinct window |> Seq.length = n)
+    |> ((+) n)
+#+end_src
+
+* Reflection
+A surprisingly simple problem today. There have definitely been day 1 or day 2
+problems that were more difficult than this one.
+
+Personally I would have preferred the input to have been longer and more
+diverse, enabling for part 2 to ask for a much longer subsequence, so that the
+very straight forward implementation of windowing over the input would not be
+efficient enough. That would have made for a more interesting implementation and
+a more interesting post. Onto the next one!
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day06.fs][GitHub]]
