@@ -1,0 +1,196 @@
+#+title: Advent Of Code 2022 - Day 07
+#+date: [2022-12-07 Wed]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 07: No Space Left On Device
+Summary: We're given the output of a terminal, a bit similar to a real one. The
+commands in this terminal are ~cd~ and ~ls~.
+
+~cd /~ changes dir to root. ~cd foo~ moves a directory /deeper/. ~cd ..~ moves
+out a directory. ~ls~ lists the content of the directory. Subdirectories are
+listed as ~dir name~, files are listed as ~size-in-bytes name~.
+
+The /size/ of a directory is the size of all of its files plus the size of all
+of its subdirectories.
+
+We're asked to give the sum of the size of all the directories with a size of at
+most 100000.
+
+Example input:
+
+#+begin_src txt
+$ cd /
+$ ls
+dir a
+14848514 b.txt
+8504156 c.dat
+dir d
+$ cd a
+$ ls
+dir e
+29116 f
+2557 g
+62596 h.lst
+$ cd e
+$ ls
+584 i
+$ cd ..
+$ cd ..
+$ cd d
+$ ls
+4060174 j
+8033020 d.log
+5626152 d.ext
+7214296 k
+#+end_src
+
+Find the full description [[https://adventofcode.com/2022/day/7][here]].
+
+The full problem statement nudges us in the direction of taking the input and
+using it to build a tree representing the directory and file structure and then
+run calculations on that tree.
+
+That's a solid idea, but we can go for an easier solution. The only thing we're
+being asked about is the /size of each directory/. The /contents/ are not
+relevant, other than to calculate the size.
+
+So what we can do is go over each line of the input and follow the ~cd~
+directions to update /the current path/. Then if we see a line containing a
+size, we update the size of the current directory /as well as the sizes of all
+of the parent directories./
+
+When we're done we will have a dictionary with paths as keys and sizes are
+values.
+
+Like several times before in this year's Advent of Code, I started with a
+version with mutation.
+
+#+begin_src fsharp
+let calculateSizes (lines: string list) =
+    let mutable pwd = []
+    let mutable sizes = Map.empty
+    for line in lines do
+        match line.Split(" ") with
+        | [|"$"; "cd"; ".."|] -> pwd <- List.tail pwd
+        | [|"$"; "cd"; dirName|] -> pwd <- dirName :: pwd
+        | [|"$"; "ls"|] -> ()
+        | [|"dir"; _|] -> ()
+        | [|sizeStr; _|] ->
+            let size = Int32.Parse(sizeStr)
+            sizes <- updateSizes pwd size sizes 
+        | _ -> failwith "Failed to parse"
+    sizes
+#+end_src
+
+In F# you can use lists as keys of a map. If that's not possible, you can just
+as easily concatenate the parts separated by slashes.
+
+~updateSizes~ is a little bit involved because not only does it update the size
+of the current directory, it also updates the sizes of all parents.
+
+Since we're storing the path as a list of segments, we can just pop a segment
+and recurse on the remaining segments.
+
+#+begin_src fsharp
+let rec updateSizes pwd size sizes =
+    match pwd with
+    | [] -> sizes   
+    | _::xs -> 
+        let updated = 
+            sizes
+            |> Map.change pwd (fun i -> Some (Option.defaultValue 0 i + size))
+        updateSizes xs size updated
+#+end_src
+
+This particular solution makes the assumption that ~ls~ is not called on any
+directory twice. It also assumed that ~cd /~ is only called at the
+beginning. Both of these assumptions were true for my input (and I verified this
+before basing my solutions on the assumptions). Implementing ~cd /~ specifically
+adds just one extra ~match~ case.
+
+To ensure we only process one ~ls~ for each directory we can put each path for
+which we've seen an ~ls~ into a ~set~ and verify that a path we see ~ls~ for is
+not in that set yet.
+
+With the sizes calculated it's easy to find all values smaller than 100000.
+
+#+begin_src fsharp
+let solve1 (input: string list) =
+    input
+    |> calculateSizes
+    |> Map.values
+    |> Seq.filter (fun sz -> sz <= 100000)
+    |> Seq.sum
+#+end_src
+
+* Part 2
+Summary: Part two is slightly more elaborate. We have to free up space on the
+disk. The disk is 70.000.000 bytes. We need 30.000.000 bytes of free space. What
+is the size of the smallest directory we can delete to have at least 30.000.000
+bytes of free space?
+
+Since the size of the disk is given, the free space we already have is
+70.000.000 minus the size of the root folder. To get the minimum size of any
+directory we need to delete, we subtract that number from 30.000.000.
+
+Then we take our list of sizes and find the smallest number equal to or larger
+than that number:
+
+#+begin_src fsharp
+let solve2 (input: string list) =
+    let sizes = calculateSizes input
+    let availableSpace = 70000000 - sizes[["/"]]
+    let spaceNeeded = 30000000 - availableSpace
+
+    sizes
+    |> Map.values
+    |> Seq.filter (fun sz -> spaceNeeded <= sz)
+    |> Seq.min
+#+end_src
+
+* Improvements
+There wasn't a lot I wanted to improve about today's solution, except of course
+to remove the mutation. Like we've seen before, we can replace the ~for~-loop
+with ~List.fold~ and use the variable we're mutating as the state. Since we're
+mutating two variables this time (~pwd~ and ~sizes~), we combine the two in a
+tuple.
+
+#+begin_src fsharp
+let calculateSizes (lines: string list) =
+    let handleLine (pwd, sizes) (line: string) = 
+        match line.Split(" ") with
+        | [|"$"; "cd"; "/"|] -> (["/"], sizes)
+        | [|"$"; "cd"; ".."|] -> (List.tail pwd, sizes)
+        | [|"$"; "cd"; dirName|] -> (dirName :: pwd, sizes)
+        | [|"$"; "ls"|] -> (pwd, sizes)
+        | [|"dir"; _|] -> (pwd, sizes)
+        | [|sizeStr; _|] ->
+            let size = Int32.Parse(sizeStr)
+            (pwd, updateSizes pwd size sizes)
+        | _ -> failwith "Failed to parse"
+
+    let (_, sizes) =
+        lines
+        |> List.fold handleLine ([], Map.empty)
+
+    sizes
+#+end_src
+
+* Reflection
+I liked today. The problem statement is fun. The solution direction that the
+problem statement nudges you into is perfectly fine, although the alternative is
+simpler.
+
+The entire thing is still not too difficult. It is, however, a bit more involved
+than the previous day. We're getting a bit further in, so it's nice to see a
+problem that's just a tad more challenging.
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day07.fs][GitHub]].
