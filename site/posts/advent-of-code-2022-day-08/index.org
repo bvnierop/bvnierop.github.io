@@ -1,0 +1,190 @@
+#+title: Advent Of Code 2022 - Day 08
+#+date: [2022-12-08 Thu]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 08: Treetop Tree House
+Summary: Given the heights of trees in a grid, determine how many trees are
+visible from outside the grid.
+
+A tree is visible if only smaller trees have been seen. Note that some trees can
+be seen from more than one side and that all trees on the edges of the grid are
+visible as no larger trees block them.
+
+Example input:
+
+#+begin_src txt
+30373
+25512
+65332
+33549
+35390
+#+end_src
+
+Read the full description [[https://adventofcode.com/2022/day/8][here]].
+
+This is one of those problems where my imperative mind is a /lot/ faster than my
+functional mind, so pay no heed to the quality of the code. It's bad. But it
+solves the problem.
+
+For this problem we need to look at every line from two directions. That means
+we look at every cell of the grid four times.
+
+For each pass, a tree is visible if it's strictly taller than any tree we've
+seen in the line so far, or if it's already been marked visible from another
+side.
+
+After the more involved parsing of the past few days, parsing today's input is
+very easy:
+
+#+begin_src fsharp
+let treeMap =
+    input
+    |> List.map (Seq.map Int32.parseChr)
+    |> array2D
+#+end_src
+
+~Int32.parseChr~ is a helper that wraps ~Int32.Parse~. This gives us a /mutable/
+two-dimensional array of tree heights.
+
+We also need a mutable two-dimensional array to mark if trees are visible. We
+can build it off the ~treeMap~. Edges are always visible. We'll mark everything
+else as not visible to start with.
+
+#+begin_src fsharp
+let visible = Array2D.init rows columns
+                            (fun r c ->
+                                match (r, c) with
+                                | (0, _) -> true
+                                | (_, 0) -> true
+                                | (row, _) when row = rows - 1 -> true
+                                | (_, col) when col = columns - 1 -> true
+                                | _ -> false)
+#+end_src
+
+As described above, a tree is visible if it's strictly higher than a tree we've
+seen before in the same line and direction, or if it's already been marked
+visible. The argument ~high~ in this helper represents the highest tree seen so
+far.
+
+#+begin_src fsharp
+let isVisible (row, col)  high =
+    visible[row,col] || 
+    treeMap[row,col] > high
+#+end_src
+
+Then comes the ugliness. First we look at each row. For each row we keep track
+of the highest tree and update the ~visible~ array. We have already marked the
+edges so we can skip them.
+
+We have to check both directions so after going from left to right, we also go
+right to left.
+
+#+begin_src fsharp
+for row = 1 to rows - 2 do
+    let mutable high = treeMap[row,0]
+    for left = 1 to columns - 2 do
+        visible[row,left] <- isVisible (row, left) high
+        high <- max high treeMap[row,left]
+
+    high <- treeMap[row, columns - 1]
+    for right = columns - 2 downto 1 do
+        visible[row,right] <- isVisible (row, right) high
+        high <- max high treeMap[row,right]
+#+end_src
+
+Then we can do the same for columns rather than rows to finish checking all four
+directions.
+
+~Array2D~ implements ~IEnumerable~, so we can use ~Seq~ functions on them. That
+makes it easy to count the visible trees using my [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Lib/Seq.fs][~countWhere~]] helper.
+
+#+begin_src fsharp
+visible
+|> Seq.cast
+|> Seq.countWhere id
+#+end_src
+
+* Part 2
+Summary: In part two we have to determine the tree with the highest /scenic
+score/. The /scenic score/ of a tree is determined by how many other trees are
+visible from that tree. Once again we have to look in all four cardinal
+directions.
+
+The amount of trees per cardinal direction are then multiplied by each other to
+determine the score.
+
+So if to the north we can see 3 trees, to the south we can see 2 trees and to the
+east and west we can see 1 tree, the score is ~3 * 2 * 1 * 1 = 6~
+
+A tree is visible from another tree if it's /smaller/ than the tree of origin and
+the view has not been obstructed yet by a tree that is /equal to or larger/ than
+the tree of origin.
+
+The way I solved this is... not pretty. The helper function ~scenicScore~ takes
+a grid location and the height of the tree at that location and returns the
+score for that tree.
+
+It does that by looking into each direction and, if not yet blocked, adding 1 to
+the score for that line. Note that the tree that does the blocking can be seen.
+
+#+begin_src fsharp
+let scenicScore row col treeHeight =
+    let mutable score = 1
+    let mutable visible = 0
+    let mutable blocked = false
+    for r = row - 1 downto 0 do
+        if treeMap[r,col] >= treeHeight && not blocked then visible <- visible + 1; blocked <- true
+        if not blocked then visible <- visible + 1
+    score <- score * visible
+    visible <- 0
+    blocked <- false
+    for r = row + 1 to rows - 1 do
+        if treeMap[r,col] >= treeHeight && not blocked then visible <- visible + 1; blocked <- true
+        if not blocked then visible <- visible + 1
+#+end_src
+
+For two directions, this is what that looks like. I'll leave the second
+dimension of this monstrosity as an exercise to the reader. It involves some
+copying and pasting.
+
+Applying this function to every location in the ~treeMap~ and finding the
+maximum can be done elegantly again.
+
+#+begin_src fsharp
+treeMap
+|> Array2D.mapi scenicScore
+|> Seq.cast<int>
+|> Seq.max
+#+end_src
+
+* Improvements
+There is a /lot/ of room for improvement here, but due to other commitments
+there was no time to attempt those improvements. I'll update this post later
+with improvements.
+
+* Reflection
+This is one of those problems where my imperative mind is a /lot/ faster than my
+functional mind. I spent about 30 minutes solving the problem in imperative
+F#. I spent quite a some time trying to make it nicer but failed. Other
+commitments prevented me from spending more time.
+
+Since there's much to learn here I /really/ do want to try and make it
+nicer. It'll have to happen later, though.
+
+The good news is that this is, I think, the first time I've used an unfamiliar
+language for a grid-based problem and finished the problem in a reasonable
+amount of time.
+
+It's not /good/ code, but it solves the problem and earns the stars /and/ was
+easy to write in a short amount of time. Not all bad, but it definitely needs
+some work.
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day08.fs][GitHub]].
