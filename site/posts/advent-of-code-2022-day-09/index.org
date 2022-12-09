@@ -1,0 +1,293 @@
+#+title: Advent Of Code 2022 - Day 09: Rope Bridge
+#+date: [2022-12-09 Thu]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 09: Rope Bridge
+Summary: Given a list of moves containing cardinal directions and number of
+steps, move a rope over a grid. The rope has two knots, marked /head/ and /tail/.
+
+The head follows the steps given in the input. The tail can never be more than a
+single tile behind and will move closer to the head. The specific rules for this
+are in the full problem statement.
+
+The head and tail both start at (0, 0).
+
+After simulating the entire set of moves /one step at a time/, how many
+different tiles did the tail touch?
+
+Example input:
+
+#+begin_src txt
+U 5
+L 2
+R 1
+D 1
+#+end_src
+
+Read the full description [[https://adventofcode.com/2022/day/9][here]].
+
+At first I solved the wrong problem! The problem statement specifies that the
+tail moves closer to the head /after every single step/. Each instruction line
+can contain more than one step. ~U 5~ for example, is five steps.
+
+This directive did not register in my mind and I implemented each line as a
+single instruction. Lesson learned. Read closely.
+
+First we parse the instructions and turn them into sets of moves.
+
+#+begin_src fsharp
+let parseLine (line: string) =
+    match line.Split() with
+    | [|"U"; n|] -> Seq.init (n |> Int32.parse) (fun _ -> (0, 1))
+    | [|"D"; n|] -> Seq.init (n |> Int32.parse) (fun _ -> (0, -1))
+    | [|"L"; n|] -> Seq.init (n |> Int32.parse) (fun _ -> (-1, 0))
+    | [|"R"; n|] -> Seq.init (n |> Int32.parse) (fun _ -> (1, 0))
+    | _ -> failwith "Failed to parse line"
+#+end_src
+
+Each line turns into a sequence of single-step moves. Each move is represented
+by a tuple containing ~(delta-of-x, delta-of-y)~
+
+Like most days so far I've started off solving today's problem using an
+imperative style. We can walk over each individual step using a simple
+~for~-loop. Updating the /head/ is simple as it just follows the steps.
+Each step we also update the tail and then add its new position to a ~set~ in
+order to keep track of the answer.
+
+#+begin_src fsharp
+let mutable head = (0, 0)
+let mutable tail = (0, 0)
+let mutable visited = Set.empty
+for line in input do
+    let moves = parseLine line
+    for (dx, dy) in moves do
+        head <- (fst head + dx, snd head + dy)
+        tail <- updateTail head tail
+        visited <- Set.add tail visited
+#+end_src
+
+~updateTail~ can be solved with maths, but throughout the year I don't use those
+skills enough to solve this problem quickly, so my initial solution is to just
+hardcode all the possibilities:
+
+#+begin_src fsharp
+let updateTail (hx, hy) (tx, ty) =
+    let dx = hx - tx
+    let dy = hy - ty
+
+    match (dx, dy) with
+    | (0, 0) | (0, 1) | (0, -1) | (1, 0) | (-1, 0)
+    | (1, 1) | (1, -1) | (-1, 1) | (-1, -1) -> (tx, ty)
+
+    | (0, 2) | (1, 2) | (-1, 2) -> (hx, hy - 1)
+    | (0, -2) | (1, -2) | (-1, -2) -> (hx, hy + 1)
+
+    | (2, 0) | (2, 1) | (2, -1) -> (hx - 1, hy)
+    | (-2, 0) | (-2, 1) | (-2, -1) -> (hx + 1, hy)
+
+    | _ -> failwith $"Failed to update: (({hx}, {hy}) - ({tx}, {ty}) -> {dx}, {dy})"
+#+end_src
+
+If the absolute deltas of both ~x~ and ~y~ are no larger than ~1~ we don't have
+to move the tail. If the tail is two tiles /below/ the head then it has to move
+up to directly below the head and in the same column. If it's two tiles /above/
+the head it has to move directly above and in the same column.
+
+Similarly if it's two tiles to the /left/ then it has to move directly to the
+left and in the same row, and if it's two tles to the /right/ then it has to
+move directly to the right and in the same row.
+
+Any other set of delta's ought to be impossible in the problem and therefore
+doesn't have to be covered.
+
+Since we've been keeping track of all positions visited by the tail in our loop,
+all we have to return is the size of ~visited~. As it turns out, ~Set~ does not
+contain a ~length~ function. ~Set~ implements ~Seq~, though, so we can still
+easily get the number of items in ~visited~.
+
+* Part 2
+Summary: Rather than two knots, our rope has ten knots. We still have to
+determine how many tiles the tail (tenth knot) has touched.
+
+We can no longer represent our rope as two tuples. Instead we should represent
+our rope as a list of ~n~ tuples.
+
+#+begin_src fsharp
+let rope = List.init n (fun _ -> (0, 0))
+#+end_src
+
+Yesterday I discovered the magic of ~List.scan~. ~scan~ acts like ~fold~, but
+rather than returning a single state, it returns all the returned
+states. Example:
+
+#+begin_src fsharp
+let numbers = [1; 2; 3; 4; 5]
+List.scan (fun factorial n -> factorial * n) 1 numbers
+#+end_src
+
+The code above returns ~[1; 1; 2; 6; 24; 120]~. Every state encountered. This is
+useful if we want to transform a list into another list, based on some previous
+value or state that depends on an earlier part of the list.
+
+In this problem we can use it to calculate the position of every knot. The
+position of a knot depends on the position of the knot preceding it. We can
+easily calculate the new position of the head, and then pass that as the first
+state to ~scan~ with the remaining knots as the list to process.
+
+#+begin_src fsharp
+let (h::t) = rope
+let nh = (fst h + dx, snd h + dy)
+rope <- List.scan updateTail nh t
+visited <- Set.add (List.last rope) visited
+#+end_src
+
+Finally it turns out that, because knots that are not the head can move
+diagonally, ~updateTail~ now misses a few cases.
+
+#+begin_src fsharp
+let updateTail (hx, hy) (tx, ty) =
+    let dx = hx - tx
+    let dy = hy - ty
+
+    match (dx, dy) with
+    // ... snip ...
+    | (2, 2) -> (hx - 1, hy - 1)
+    | (-2, 2) -> (hx + 1, hy - 1)
+    | (2, -2) -> (hx - 1, hy + 1)
+    | (-2, -2) -> (hx + 1, hy + 1)
+#+end_src
+
+* Improvements
+First things first. Like every day I want to get rid of the imperative
+style. First we create a function for executing a single step. It takes a rope
+and the move and returns the new rope position. We also get rid of a warning
+about incomplete pattern matching that we introduced with the line
+~let (h::t) = rope~. This warning is fantastic for production quality code, but
+sometimes unfortunate when competing.
+
+#+begin_src fsharp
+let executeMove rope (dx, dy) =
+    match rope with
+    | (hx, hy)::tail -> List.scan updateTail (hx + dx, hy + dy) tail
+    | _ -> rope
+#+end_src
+
+The next step is to get rid of the ~for~-loops. We can get rid of the outer for
+loop by generating a flat sequence of moves.
+
+#+begin_src fsharp
+input
+|> List.map parseLine |> Seq.concat
+#+end_src
+
+In order to generate all of the rope positions we can use the magic of ~scan~
+once again. We can't use ~map~ because the next rope position depends on the
+previous rope position. We could use ~fold~ but then we have to keep a
+relatively complex state of both the rope and the ~visited~ set, which is also
+more difficult to pipe into the next function.
+
+#+begin_src fsharp
+|> Seq.scan executeMove rope
+#+end_src
+
+Once we have the sequence of all rope positions we can ~map~ that to a sequence
+of tail positions, convert that sequence to a set and get its size.
+
+#+begin_src fsharp
+|> Seq.map List.last
+|> Set.ofSeq |> Seq.length
+#+end_src
+
+** Applying some maths
+As mentioned before we don't have to hardcode a ton of cases in ~updateTail~. We
+can also apply some maths and some logic. The logic is stated in the problem:
+/The next knot moves to its predecessor if it's not directly connected/. A knot
+is not directly connected to its predecessor if its at least 2 tiles away on
+either axis.
+
+If it's not at least 2 removed on either axis it doesn't have to move.
+
+If it is, since we move the knots after every movement, it's never further than
+2 tiles away on any axis and therefore never has to move more than 1 tile. Let's
+explore three cases.
+
+
+
+#+begin_src txt
+.H.    .H.
+... -> .T.
+.T.    ...
+#+end_src
+In this case ~T~'s ~x~ axis does not have to change. On the ~y~ axis it has to
+move up 1.
+
+We'll first introduce a function: ~sign~. ~sign x~ returns ~-1~ if ~x~ is
+negative, ~0~ if ~x~ is ~0~ and ~1~ if ~x~ is positive.
+
+The delta (difference) of ~x~ coordinates here is ~0~, and so the ~sign~ is
+~0~. The delta of ~y~ coordinates is ~2~ (as ~H~ is higher on the ~y~ axis than
+~T~). ~sign 2~ is ~1~, which is what ~T~ has to move up.
+
+So for this case we can change the position of ~T~ by ~(sign dx, sign dy)~.
+
+#+begin_src txt
+.H.    .H.
+... -> .T.
+T..    ...
+#+end_src
+In this case we need to move ~T~'s ~x~ axis by ~1~ and ~y~ also by 1. ~dx~ is
+~1~, so ~sign dx~ is also ~1~. ~dy~ and ~sign dy~ remain the same as in the
+previous example.
+
+For this case we can also change the position of ~T~ by ~(sign dx, sign dy)~.
+
+#+begin_src txt
+..H    ..H
+... -> .T.
+T..    ...
+#+end_src
+As in the above case we have to move ~T~ by ~1~ on the ~x~ axis and ~1~ on the
+~y~ axis. Both deltas are ~2~ now, and ~sign~ reduces them to ~1~.
+
+For this case we can also change the position of ~T~ by ~(sign dx, sign dy)~.
+
+These three cases can be mirrored and turned to form all other possibilities
+where a knot's position has to be modified.
+
+#+begin_src fsharp
+let updateTail (hx, hy) (tx, ty) =
+    let dx = hx - tx
+    let dy = hy - ty
+    if abs dx > 1 || abs dy > 1 then
+        (tx + sign dx, ty + sign dy)
+    else
+        (tx, ty)
+#+end_src
+
+* Reflection
+A fun little problem today which made clear the case for careful reading. In my
+first attempt at solving the problem I missed the part where we have to break
+each larger step into steps of 1.
+
+I learned about ~scan~, which feels like a piece of magic I've been missing in
+my toolset ever since my first attempt at an Advent of Code in OCaml several
+year ago.
+
+I'm happy that ~updateTail~ was small enough that it could be handled with some
+pattern matching, because my skills are way too rusty for the generalized
+version.
+
+The problems are definitely getting a bit more difficult compared to the
+start. That makes for a nice change of pace.
+
+On to the next one!
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day09.fs][GitHub]].
