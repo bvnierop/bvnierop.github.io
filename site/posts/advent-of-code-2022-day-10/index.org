@@ -1,0 +1,184 @@
+#+title: Advent Of Code 2022 - Day 10: Cathode-Ray Tube
+#+date: [2022-12-10 Sat]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 10: Cathode-Ray Tube
+Summary: Given a list of CPU instructions, simulate the execution of these
+instructions.
+
+There are two different instructions:
+
+- ~noop~ takes ~1~ cpu cycle and does nothing.
+- ~addx V~ takes ~2~ cpu cycles and /after both cycles/ changes the value of the
+  CPU's only register, ~X~, by ~V~. ~V~ can be negative.
+
+The /signal strength/ is the value of ~X~ multiplied by the cycle number. What
+is the sum of the signal strength /during/ the 20th, 60th, 100th, 140th, 180th
+and 220th CPU cycle?
+
+Example input:
+
+#+begin_src txt
+noop
+addx 3
+addx -5
+#+end_src
+
+Read the full description [[https://adventofcode.com/2022/day/10][here]].
+
+Parsing the input, we're not actually interested in the commands. Rather, the
+only thing that matters is by how much ~X~ changes. In case of ~noop~, ~X~
+changes by 0. In case of ~addx V~, ~X~ changes by ~V~ after the second cycle.
+
+We can model this as a sequence of numbers.
+
+#+begin_src fsharp
+let expandCommand cmd =
+    match cmd |> String.split with
+    | [|"noop"|] -> seq { yield 0 }
+    | [|"addx"; n|] ->
+        seq {
+            yield 0
+            yield Int32.parse n
+        }
+    | _ -> failwith $"Invalid command: {cmd}"
+#+end_src
+
+We can then combine each tiny sequence into a large and calculate the value of
+~X~ for every cycle. Note that since we're interested in the value of ~X~
+/during/ the cycle, we have to keep the /initial/ value of ~X~.
+
+#+begin_src fsharp
+let xValues input =
+    input |> Seq.map expandCommand
+    |> Seq.concat
+    |> Seq.scan (+) 1
+#+end_src
+
+Given this list of x-values, we need to get the signal strength /during/ the
+20th cycle and every 40 cycles after that. We could index the sequence of
+x-values and check the modulo, but the input is small, so we don't have to.
+
+Instead, we can just look up the items at the expected indices. If the input
+would have been large, we could have converted the sequence to an array instead
+for faster lookup.
+
+#+begin_src fsharp
+[20;60;100;140;180;220]
+|> Seq.map (fun n -> n * Seq.item (n - 1) xValues)
+|> Seq.sum
+#+end_src
+
+We have to get the ~nth~ item - 1 because, of course, our sequence is
+0-indexed. To get the /signal strength/ we have to mulitply the value of ~X~ by
+the cycle number.
+
+* Part 2
+Summary: The ~X~ register controls the horizontal position of a sprite. The
+sprite is three pixels wide and the ~X~ register sets the horizontal position of
+the /middle/ of the sprite.
+
+The screen has 6 rows of 40 pixels each. One pixel is drawn on every CPU cycle,
+in order. So the top left pixel is drawn during the first cycle, while the
+bottom right pixel is drawn during the 240th cycle.
+
+A /lit/ pixel (~#~) is drawn when the sprite overlaps with the horizontal location of
+the pixel being drawn. Otherwise the pixel remains /dark/ (~.~).
+
+Which eight capital letters are displayed after the program runs to completion?
+
+We can represent the display as an array of 240 characters, all dark at
+first. To update the display at a given cycle we need the cycle number and the
+value of the ~X~ register /during that cycle/.
+
+The index in the display array is ~cycle % 240~. The index of the sprite is the
+value of the ~X~ register and the index in the row is ~cycle % 40~.
+
+If the index in the row overlaps with the sprite we draw a ~#~, otherwise a ~.~.
+
+#+begin_src fsharp
+let display = Array.create 240 '.'
+let update display (cycle, x) =
+    let displayIndex = cycle % 240
+    let spriteIndex = x
+    let lineIndex = cycle % 40
+    if lineIndex >= spriteIndex - 1 && lineIndex <= spriteIndex + 1 then
+        Array.updateAt displayIndex '#' display
+    else
+        Array.updateAt displayIndex '.' display
+#+end_src
+
+Because updating the screen requires the previous update, we use ~scan~ to call
+~update~ for every value of X. We use ~indexed~ to get cycle numbers.
+
+We're only interested in the ~last~ display state. We can then take that array,
+split it into 6 rows and convert it to a newline separated string.
+
+#+begin_src fsharp
+xValues |> Seq.indexed
+|> Seq.scan update display
+|> Seq.last
+|> Array.splitInto 6
+|> Array.map String.Concat
+|> String.joinSeq Environment.NewLine
+#+end_src
+
+Then all that remains is to read the output.
+
+#+begin_src txt
+###..#..#.#....#..#...##..##..####..##..
+#..#.#..#.#....#..#....#.#..#....#.#..#.
+#..#.####.#....####....#.#......#..#..#.
+###..#..#.#....#..#....#.#.##..#...####.
+#....#..#.#....#..#.#..#.#..#.#....#..#.
+#....#..#.####.#..#..##...###.####.#..#.
+#+end_src
+
+One more detail needs to be adressed. Because we are only interested in the
+value of the ~X~ register /during a cycle/, the last element in our sequence of
+x-values is not relevant. It's the value of ~X~ /after/ the last cycle. In my
+input it did not matter for the output, but for the test input it does.
+
+There's no cheap way to drop the last value of a sequence, but since the
+sequence of x-values is small, we can do it the expensive way:
+
+#+begin_src fsharp
+let butLast source =
+    Seq.take (Seq.length source - 1) source
+#+end_src
+
+Our updated ~xValues~ then looks like this:
+
+#+begin_src fsharp
+let xValues input =
+    input |> Seq.map expandCommand
+    |> Seq.concat
+    |> Seq.scan (+) 1
+    |> Seq.butLast
+#+end_src
+
+* Improvements
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using ~for~-loops and mutation and then refactor the
+mutation away, changing the ~for~-loop into a ~fold~ or a ~scan~.
+
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something /new/ then it will still end up in this section.
+
+* Reflection
+An early interpreter problem today. I kind of like these. In part one I
+struggled with dealing with the fact that what matters is the value of the ~X~
+register /during a CPU cycle/, not /after/.
+
+When I had that out of the way, part 2 really was pretty straight forward.
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day10.fs][GitHub]].
