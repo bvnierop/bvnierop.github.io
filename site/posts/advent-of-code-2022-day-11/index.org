@@ -1,0 +1,260 @@
+#+title: Advent Of Code 2022 - Day 11: Monkey in the Middle
+#+date: [2022-12-11 Sun]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 10: Monkey in the Middle
+Summary: Monkeys are playing Keep Away with your stuff! There's a pattern in how
+they are throwing your items based on how worried you are about the item.
+
+Example input:
+
+#+begin_src txt
+Monkey 0:
+  Starting items: 79, 98
+  Operation: new = old * 19
+  Test: divisible by 23
+    If true: throw to monkey 2
+    If false: throw to monkey 3
+
+Monkey 1:
+  Starting items: 54, 65, 75, 74
+  Operation: new = old + 6
+  Test: divisible by 19
+    If true: throw to monkey 2
+    If false: throw to monkey 0
+
+Monkey 2:
+  Starting items: 79, 60, 97
+  Operation: new = old * old
+  Test: divisible by 13
+    If true: throw to monkey 1
+    If false: throw to monkey 3
+
+Monkey 3:
+  Starting items: 74
+  Operation: new = old + 3
+  Test: divisible by 17
+    If true: throw to monkey 0
+    If false: throw to monkey 1
+#+end_src
+
+Every time a monkey inspects your item, your /worry level/ for that item
+increases by the functions provided in the input. Your /worry level/ is then
+divided by ~3~ because of your relief that the monkey did not damage the item.
+
+In a /turn/ a monkey inspects all of your items in order. For each item it
+adjusts the /worry level/ and then throws it based on the /test/.
+
+A monkey's turn ends if it has no (more) items.
+
+A /round/ consists of all monkeys taking one full turn in order.
+
+The level of /monkey business/ is the product of the amount of items that the
+/two most active/ monkeys have inspected.
+
+What is the level of /monkey business/ after 20 rounds?
+
+Read the full description [[https://adventofcode.com/2022/day/11][here]].
+
+This is another one of those problems where parsing is quite a big part of the
+problem. We'll keep track of the monkeys in an array of ~Monkey~.
+
+#+begin_src fsharp
+type Monkey = {
+    Items: int64 list
+    Operation: int64 -> int64
+    Test: int;
+    IfTrue: int;
+    IfFalse: int;
+}
+#+end_src
+
+With operations such as ~old * 19~ and ~old * old~ I expect numbers to become
+quite big, hence ~int64~. We'll store operations as functions, so it's easy
+apply them.
+
+Parsing an operatio is a little involved. We need the final two words of the
+line. Then we can match and determine the function to store.
+
+#+begin_src fsharp
+let parseOperation (str: string) =
+    let finalTwoElements =
+        str |> String.split |> Array.rev |> Array.take 2
+    match finalTwoElements with
+    | [|num; op|] ->
+        if num = "old" then (fun n -> n * n)
+        elif op = "+" then ((+) (Int64.parse num))
+        else ((*) (Int64.parse num))
+    | _ -> failwith $"Failed to parse operation: {str}"
+#+end_src
+
+Parsing the rest of the monkey is also a little involved. There are three lines
+where we're interested in the last word, as an integer. We'll write a helper,
+~lastAsInt~, which does just that.
+
+We're not interested in the first line of the monkey, so we skip it. Then we'll
+take the next five lines. The ~items~ line we can split on the colon, discard
+the first section, /then/ split on comma and map the resulting array to an
+~int64~ list. The other fields are straight forward.
+
+#+begin_src fsharp
+let parseMonkey (input: string list) =
+    let lastAsInt str = str |> String.split |> Array.last |> Int32.parse
+    match input |> List.skip 1 with
+    | [items;operation;test;ifTrue;ifFalse] ->
+        {
+            Items = items |> String.splitOn [|':'|] |> Array.last |> String.splitOn [|','|] |> Array.map Int64.parse |> Array.toList;
+            Operation = parseOperation operation;
+            Test = lastAsInt test;
+            IfTrue = lastAsInt ifTrue;
+            IfFalse = lastAsInt ifFalse;
+        }
+    | _ -> failwith "Failed to parse monkey"
+#+end_src
+
+Now let's start inside out. A /round/ consists of every monkey taking a
+/turn/. A monkey will adjust the /worry level/ and then /throw an item/.
+
+First we introduce a helper for throwing an item. It simply adds the item to the
+target monkey. It /could/ also remove the item from the source monkey, but we
+can also simply set the monkey's item list to an empty list at the very end.
+
+#+begin_src fsharp
+let throwItem n item monkeys =
+    monkeys
+    |> Array.updateAt n { monkeys[n] with Items = List.append monkeys[n].Items [item] }
+#+end_src
+
+Next we'll peform the entire /turn/. For every item we calculate the new /worry
+level/. Then we test if the item is divisible by the monkey's ~Test~
+criterium. A number is divisible by ~n~ if ~number % n = 0~. Finally we throw
+the item and update our array of monkeys.
+
+#+begin_src fsharp
+let monkeysAfterThrowing =
+    List.fold (fun monkeys item ->
+        let worry =  (monkey.Operation item) / 3L
+
+        if worry % int64 monkey.Test = 0 then throwItem monkey.IfTrue worry monkeys
+        else throwItem monkey.IfFalse worry monkeys) monkeys monkey.Items
+#+end_src
+
+For the final bookkeeping we need to empty the monkey's item list /and/ count
+how many items the monkey has inspected. We do the latter in a separate array
+called ~counts~.
+
+#+begin_src fsharp
+let turn index counts monkeys =
+    let monkey = monkeys[index]
+
+    // snip
+
+    (counts |> Array.updateAt index (counts[index] + (int64)(List.length monkey.Items)),
+    Array.updateAt index { monkeysAfterThrowing[index] with Items = [] } monkeysAfterThrowing)
+#+end_src
+
+Finally we can implement a /round/. Since we did not store monkey identifiers,
+we need the index of the monkey. Then we just fold over the indexed array,
+updating ~counts~ and ~monkeys~ as we go.
+
+#+begin_src fsharp
+let rec round counts monkeys =
+    monkeys |> Array.indexed
+    |> Array.fold (fun (counts, monkeys) (n, _) -> turn n counts monkeys) (counts, monkeys)
+#+end_src
+
+With all the plumbing implemented we can put it all together. We'll run 20
+rounds, get only the ~counts~, sort them, take the top 2 and take their product.
+
+#+begin_src fsharp
+[1..20]
+|> List.fold (fun (counts, monkeys) _ -> round counts monkeys) (counts, monkeys)
+|> fst
+|> Array.sortDescending |> Array.take 2 |> Array.fold (*) 1L
+#+end_src
+
+
+* Part 2
+Summary: You are worried that you're never going to get your items back. So
+worried, in fact, that your /worry level/ is no longer divided by ~3~! Your
+/worry level/ will spiral out of control.
+
+With this new rule, determine the level of /monkey business/ after 10000 rounds.
+
+Let's get the obvious out of the way first. Most if not all of your items are
+going to be in the hands of a monkey that will multiply the /worry level/ by
+itself. 10000 times. That number will get so large that calculating the
+divisibility will be too slow. So now that we're no longer dividing the /worry
+level/ by ~3~, we need another way to adjust it.
+
+Other than that our code remains the same, though. We can take our solution to
+part 1, pass a new adjust function for the /worry level/ and pass the amount of
+/rounds/ and run with it.
+
+#+begin_src fsharp
+let worry = worryControlFn <| monkey.Operation item
+assert(worry >= 0L)
+#+end_src
+
+We'll also ensure that we don't get an overflow.
+
+** Maintaining a reasonable worry level
+So how do we maintain a reasonably worry level?
+
+In part 1 we used the fact that a number ~a~ is divisble by ~n~ if ~a % n =
+0~. That still applies here. If ~a~ is very large and subtract ~n~ from it one
+time that does not change the remainder. ~(a - n) % n = a % n~. If we remove ~n~
+so often that only the remainder remains, this is still true. ~(a % n) % n = a %
+n~.
+
+Unfortunately there's more than one monkey and their divisors are different. So
+we cannot reduce the /worry level/ to ~worry % divisor~.
+
+For example: ~12 % 5 = (12 - 5) % 5 = 2~. ~2 % 5~ is still ~2~. But if another
+monkey has divisor ~m = 7~, then ~12 % 7 = 5~ while ~(12 - 5) % 7 = 0~.
+
+It turns out we can solve this by storing the remainder of dividing by a number
+that is divisible by both ~5~ /and/ ~7~. We can do this because if a number is
+divisble by a multiple of ~n~, it's also divisible by ~n~.
+
+To get this number for /all/ the monkeys, we need to multiply /all/ of their
+divisors. We want to make this number as small as possible. The smallest number
+in the above example is indeed ~5 * 7 = 35~, but if the numbers were ~2~ and
+~8~, then, since ~8~ is already a multiple of ~2~, that number would be ~2~. It
+turns out that in the input all divisors are prime, and so the lowest common
+multiple is, indeed, all of them multiplied together.
+
+#+begin_src fsharp
+let product = monkeys |> Array.map (fun m -> int64 m.Test) |> Array.fold (*) 1L
+#+end_src
+
+Our /worry level/ adjusting function then becomes ~worry = worry % product~.
+
+* Improvements
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using ~for~-loops and mutation and then refactor the
+mutation away, changing the ~for~-loop into a ~fold~ or a ~scan~.
+
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something /new/ then it will still end up in this section.
+
+* Reflection
+An early interpreter problem today. I kind of like these. In part one I
+struggled with dealing with the fact that what matters is the value of the ~X~
+register /during a CPU cycle/, not /after/.
+
+When I had that out of the way, part 2 really was pretty straight forward.
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day11.fs][GitHub]].

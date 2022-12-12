@@ -170,6 +170,9 @@ I've noticed that in many posts the improvements are pretty much the same. I
 hack together a solution using ~for~-loops and mutation and then refactor the
 mutation away, changing the ~for~-loop into a ~fold~ or a ~scan~.
 
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+
 I'll leave these kinds of improvements out of this section for now and just
 immediately describe them as they've ended up after refactoring. If I learn
 something /new/ then it will still end up in this section.
