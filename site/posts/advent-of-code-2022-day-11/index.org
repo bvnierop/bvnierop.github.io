@@ -10,7 +10,7 @@ Every year I participate in a programming language I did not use for Advent of
 Code before, in order to learn new ways of doing things and to challenge
 myself. This year, that language is F#.
 
-* Day 10: Monkey in the Middle
+* Day 11: Monkey in the Middle
 Summary: Monkeys are playing Keep Away with your stuff! There's a pattern in how
 they are throwing your items based on how worried you are about the item.
 
