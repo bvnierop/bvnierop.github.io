@@ -251,10 +251,11 @@ immediately describe them as they've ended up after refactoring. If I learn
 something /new/ then it will still end up in this section.
 
 * Reflection
-An early interpreter problem today. I kind of like these. In part one I
-struggled with dealing with the fact that what matters is the value of the ~X~
-register /during a CPU cycle/, not /after/.
+I wasn't feeling it today. Not even a little. Eventually I opened my laptop at
+about 23:00. Part 1 was relatively straight forward. For part 2 it took longer
+than I've liked to realise the modulo trick. It shows my rustiness in problem
+solving.
 
-When I had that out of the way, part 2 really was pretty straight forward.
+On to the next one!
 
 The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day11.fs][GitHub]].
