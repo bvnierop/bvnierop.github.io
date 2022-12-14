@@ -1,0 +1,252 @@
+#+title: Advent Of Code 2022 - Day 12: Hill Climbing Algorithm
+#+date: [2022-12-12 Mon]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 12: Hill Climbing Algorithm
+Summary: Given a hill, represented as a grid of characters where ~a~ represents
+height 0 and ~z~ height 26, what is the shortest path from start (height ~a~,
+represented by ~S~) finish (height ~z~, represented by ~E~). You cannot climb
+/up/ a height distance greater than 1.
+
+Example input:
+
+#+begin_src txt
+Sabqponm
+abcryxxl
+accszExk
+acctuvwj
+abdefghi
+#+end_src
+
+Read the full problem statement [[https://adventofcode.com/2022/day/12][here]].
+
+Despite the name and description of today's problem, we don't actually have to
+implement a hill climbing algorithm.
+
+There are various ways to find the shortest path from A to B. One way is the
+/breadth first search/, or BFS. The limitation of using BFS for efficiently
+finding the shortest path is that all paths between neighbouring locations must
+have the same length. In this case that's true. They all have length ~1~.
+
+** Explaning Breadth First Search
+Imagine a tree structure. It has a root and some children.
+
+#+begin_src txt
+          A
+        /   \
+       B     C
+      / \   / \
+     D   E F   G
+#+end_src
+
+A breadth first search will search this tree one level at a time. First we
+examine ~A~. Then we examine ~B~ and ~C~. Then we examine ~D~, ~E~, ~F~ and
+~G~. If ~E~ is what we're looking for, we'll find it at a depth of 2. So the
+shortest (and in this case /only/) path from ~A~ to ~E~ is 2.
+
+Our grid is not a tree structure. However, we can represent it as one. We
+call the top left corner where ~S~ is in the sample input ~(0,0)~. That's also
+our root. It's neighbours are the children. Their neighbours are their children,
+and so on.
+
+#+begin_src txt
+             (0,0)
+       /-----/  \------\
+     (0,1)           (1,0)
+    /  |  \         /  |  \
+(0,0)(0,2)(1,1) (0,0)(2,0)(1,1)
+#+end_src
+
+As you can see from this example there are some duplicates. That also means that
+there are multiple paths from the start to those points. In this short example
+all paths are possible, but if we were to extend the tree with one more level
+we'd end up with a path from ~(2,0)~ to ~(3,0)~, but the height difference is
+too large for that path to be taken.
+
+What that means is that we don't have to examine every path in this tree. We can
+discard invalid paths and paths to points we've already seen. After all, there
+exists a path from ~(0,0)~ to ~(0,0)~ that take 2 steps, but there's also one
+that takes 0 steps (not moving at all!)
+
+** Implementing BFS
+The way we implement BFS is by using a queue. A queue is a data structure that
+lets you get elements out of it in the same order you put them in.
+
+Start by queueing ~(0,0)~. Then, as long as the queue isn't empty, take the next
+node off the queue. ~(0,0)~ in this case. Examine its children. If we want to
+process them, put them in the queue. The queue may now look like ~(0,1);(1,0)~. Take the
+next element off the queue: ~(0,1)~. Examine its children and put the ones we want
+to process on the queue. We've already seen ~(0,0)~ so we don't care about that
+one. The others are new so we put them on the queue: ~(1,0);(0,2);(1,1)~. When
+we take the next element off the queue we're still looking at the points
+directly connected to ~(0,0)~. We keep searching until we find the
+destination. If the queue is empty then no more nodes have to be examined.
+
+In order to determine /how far away the destination is/ we need to queue a
+combination of both the distance /and/ the point. For example: ~(0,(0,0))~. Then
+when we put the children on the queue we increment the distance, so the queue
+becomes: ~(1,(0,1));(1,(1,0))~. When we look at ~(1,(0,1))~ and put /its/
+children on the queue, the queue then becomes ~(1,(1,0));(2,(0,2));(2,(1,1))~.
+
+In F#, without mutation, here's how that can look:
+
+#+begin_src fsharp
+let bfs start finishFn validFn (grid: 'a array array) =
+    let rec loop queue seen =
+        if Queue.isEmpty queue then None
+        else
+            let (dist, (p1, p2)) = Queue.front queue
+            if finishFn ((p1, p2), grid.[p1].[p2]) then Some dist
+            else
+                let (newQ, newSeen) =
+                    Seq.fold (fun (newQ, newSeen) npos ->
+                        if not <| Set.contains npos newSeen && validFn ((p1, p2), grid.[p1].[p2]) (npos, grid.[fst npos].[snd npos]) then
+                            (Queue.enqueue (dist + 1, npos) newQ,
+                            Set.add npos newSeen)
+                        else
+                            (newQ, newSeen)) <| (Queue.dequeue queue, seen) <| (Array.neighbours <| p1 <| p2 <| grid)
+                loop newQ newSeen
+
+    let queue = Queue.enqueue (0, start) Queue.empty
+    let seen = Set.add start Set.empty
+    loop queue seen
+#+end_src
+
+The function ~bfs~ takes four arguments. ~start~ is our starting
+location. ~finishFn~ is a function that we'll call to check if we're
+done. ~validFn~ is a fcuntion we'll call to check if a neighbour is one we can
+go to. ~grid~ is our grid.
+
+The ~loop~ function is the meat. It implements the algorithm described above. If
+the queue is empty we return ~None~ to indicate that no answer was found. This
+isn't /always/ what you want but for today's problem it is. This is a case we
+shouldn't reach in today's problem because a path is guaranteed, but it's good
+to be complete so we can reuse this later.
+
+If the queue is not empty then we'll look at the first element on it. We run it
+against ~finishFn~. If that returns true then we return ~Some dist~, the
+distance from the starting node. Otherwise we build a new queue, folding over
+the neighbours. If we've not seen the neighbour before /and/ it's a valid
+destination then we mark it as seen and put it on the queue. FInally we call
+~loop~ recursively with the new queue and seen collections.
+
+~Array.neighbours~ is a helper function that I'm not sure I've placed in the
+correct module, but it returns the indices of the neighbours.
+
+#+begin_src fsharp
+let neighbours index1 index2 (array: 'a array array) = seq {
+    let deltas = [(0, 1); (0, -1); (1, 0); (-1, 0)]
+    for (di1, di2) in deltas do
+        let newI1 = index1 + di1
+        let newI2 = index2 + di2
+        if newI1 >= 0 && newI1 < Array.length array &&
+           newI2 >= 0 && newI2 < Array.length array[newI1] then yield (newI1, newI2)
+}
+#+end_src
+
+** Solving the problem
+Algorithm understood and implementation done is the hard part in solving the
+problem.
+
+Parsing consists of two parts. First we convert the grid to heights.
+
+#+begin_src fsharp
+let rec parseChr = function
+    | 'S' -> parseChr 'a'
+    | 'E' -> parseChr 'z'
+    | c -> Convert.ToInt32(c) - Convert.ToInt32('a')
+
+let parseLine line = line |> Array.map parseChr
+#+end_src
+
+We also need the starting position. In F#, finding the index in an array of
+arrays is a bit clunky, so I wrote a helper. Even though breaks and early
+returns aren't a thing in F#, this function will exit early because ~Seq.pick~
+only evaluates the sequence until the first time it finds a ~Some~ value.
+
+#+begin_src fsharp
+let findIndex2D predicate (array: 'a array array) =
+    Seq.pick id <| seq {
+        for y = 0 to Array.length array - 1 do
+            for x = 0 to Array.length array[y] - 1 do
+                if predicate array.[y].[x] then yield Some (y, x)
+                else yield None
+    }
+#+end_src
+
+We can then use the helper to find ~S~ and ~E~ in the input.
+
+#+begin_src fsharp
+let parse (input: string list) =
+    let asArray = input |> List.map Seq.toArray |> List.toArray
+    (Array.findIndex2D ((=) 'S') asArray, Array.findIndex2D ((=) 'E') asArray,
+        asArray |> Array.map parseLine)
+#+end_src
+
+With all that prep work we can now solve the problem in just a few lines. We
+parse the input and call our ~bfs~ function. We start at ~start~. ~finishFn~
+checks that we've reached the finish. ~validFn~ checks that we never climb /up/
+more than 1 hight difference.
+
+#+begin_src fsharp
+let solve1 (input: string list) =
+    let (start, finish, grid) = parse input
+
+    bfs start (fun (pos, _) -> pos = finish)
+            (fun (_, h) (_, h2) -> h2 - h <= 1)
+            grid
+    |> Option.defaultValue -1
+#+end_src
+
+* Part 2
+Summary: Find the shortest path from /any/ point with height 0 to the end.
+
+There are two ways we can solve this problem. One way is to pass /all/ points
+with height 0 as starting points. The fact that we never look at any point twice
+guarantees that we will find the shortest path to the end. That, however, would
+require us to change our ~bfs~ function.
+
+What we can do instead is find the /reverse/ path. We start at ~finish~ and stop
+at the first position with height 0. We also have to reverse the height
+difference check, because we're checking in the wrong direction.
+
+#+begin_src fsharp
+let solve2 (input: string list) =
+    let (start, finish, grid) = parse input
+
+    bfs finish (fun (_, h) -> h = 0)
+                (fun (_, h2) (_, h) -> h2 - h <= 1)
+                grid
+    |> Option.defaultValue -1
+#+end_src
+
+* Improvements
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using ~for~-loops and mutation and then refactor the
+mutation away, changing the ~for~-loop into a ~fold~ or a ~scan~.
+
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something /new/ then it will still end up in this section.
+
+* Reflection
+We've reached this Advent of Code's first shortest path problem. If I write BFS
+in my favourite competitive programming language then I can do it in a few
+minutes. In my Advent of Code choices I tend to spend significantly more
+time. Sometimes hours. This time I finished in under 30 minutes, which I was
+very happy about.
+
+On to the next one!
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day12.fs][GitHub]].
