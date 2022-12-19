@@ -1,0 +1,177 @@
+#+title: Advent Of Code 2022 - Day 13: Distress Signal
+#+date: [2022-12-13 Tue]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 13: Distress Signal
+Summary: Given a list of pairs of /packets/, where each /packet/ is a list where
+each element is either an integer or another list, determine how many pairs are
+in the correct order.
+
+Example input:
+
+#+begin_src txt
+[1,1,3,1,1]
+[1,1,5,1,1]
+
+[[1],[2,3,4]]
+[[1],4]
+
+[9]
+[[8,7,6]]
+#+end_src
+
+To determine which packets comes first, compare each element from left to
+right. If both elements are integers then the smallest comes first. If one
+element is a list and the other an integer, convert the integer to a
+single-element list and compare the lists. Finally if both elements are lists,
+compare their numbers from left to right. If one list runs out of numbers before
+a difference is found, that list comes first.
+
+Read the full problem statement [[https://adventofcode.com/2022/day/13][here]].
+
+Today we're helped greatly by the choice of language. The logic for comparing
+lists already exists in F#. We can prove that by putting some tests in a REPL.
+
+#+begin_src fsharp
+compare [1] [1]
+val it: int = 0
+
+compare [1] [1;2]
+val it: int = -1
+
+compare [1] [2]
+val it: int = -1
+#+end_src
+
+F# being a statically typed language, we cannot mix integers and lists of
+integers. Therefore we need to introduce a type that can do that for us.
+
+#+begin_src fsharp
+type Expr<'a> = Value of 'a | List of Expr<'a> list
+#+end_src
+
+This in itself handles most cases. The one case that isn't handled here is when
+a value is compared to a list. To make that work we have to implement our own,
+custom comparison function. F# has support for that.
+
+We tag our type with ~CustomComparison~ and ~CustomEquality~ attributes and
+implement the required functions. The only one that matters is ~compare~, which
+compares the two instances. If both are values or both are lists, it defers to
+the built-in compare. Otherwise it recurses, boxing the value in a list.
+
+#+begin_src fsharp
+type Expr<'a when 'a: comparison> =
+    Value of 'a | List of 'a Expr list
+
+    static member compare a b =
+        match (a, b) with
+        | (Value aVal, Value bVal) -> Operators.compare aVal bVal
+        | (List aList, List bList) -> Operators.compare aList bList
+        | (List _, Value _) -> compare a (List [b])
+        | (Value _, List _) -> compare (List [a]) b
+#+end_src
+
+To parse the input we could keep track of brackets and depth and all that jazz,
+or we could write a recursive parser in FParsec.
+
+#+begin_src fsharp
+    let pExpr, pExprImpl = createParserForwardedToRef()
+    let pList = between (pchar '[') (pchar ']') (sepBy pExpr (pchar ',')) |>> List
+    let pValue = pint32 |>> Value
+    pExprImpl.Value <- pValue <|> pList
+
+    let parseList = List.map (parseOrDie pExpr)
+#+end_src
+
+The interesting part here is on the first line. ~pExpr~ is a parser that parses
+an expression. It defers its implementation to ~pExprImpl~, which is a
+reference, meaning we can change it. Since ~pList~ parses a list matches
+~pExpr~, and ~pExpr~ is either a ~pValue~ or a ~pList~ this is our way around
+that cyclic dependency.
+
+A small helper will check if two packets are in the correct order. It compares
+the list of packets against the sorted list. We can use built-ins because of our
+custom compare function.
+
+#+begin_src fsharp
+let inRightOrder expressions = expressions = List.sort expressions
+#+end_src
+
+With all that in place, solving the problem is trivial, though a bit more code
+than I'd like.
+
+We group the input in lists of two packets. We parse each list and immediately
+check if it's in the right order, storing only that.
+
+We need to sum the 1-based indices of those pairs of packets that are in the
+correct order, so the rest of the code does that. It adds indices (which are 0
+based), removes the pairs that are in the wrong order, drops the booleans,
+increments the indices and finally sums them.
+
+#+begin_src fsharp
+let solve1 (input: string list) =
+    input |> List.splitOnExclusive String.isNullOrEmpty
+    |> List.map (parseList >> rightOrder)
+    |> List.indexed
+    |> List.filter (fun (_, b) -> b)
+    |> List.map (fst >> ((+) 1))
+    |> List.sum
+#+end_src
+
+* Part 2
+Summary: Part 2 asks us to add two /marker/ packets to the input and find the
+markers when all packets are in the correct order.
+
+Since ~List.sort~ works for us, this is remarkably trivial, although the
+function ends up being slightly larger than part 1.
+
+We create our markers. Then we take the input, remove the empty lines and parse
+it. Add the markers and sort the list.
+
+Once again we need indices, so we add the 0-based index to the list. Select only
+the markers from the remaining list, select only the indices, increment them and
+finally multiply them.
+
+#+begin_src fsharp
+let solve2 (input: string list) =
+    let dividers = ["[[2]]";"[[6]]"] |> parseList
+    input |> List.reject String.isNullOrEmpty
+    |> parseList
+    |> List.append dividers
+    |> List.sort
+    |> List.indexed
+    |> List.filter (fun (_, e) -> List.contains e dividers)
+    |> List.map (fst >> ((+) 1))
+    |> List.fold (*) 1
+#+end_src
+
+* Improvements
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using ~for~-loops and mutation and then refactor the
+mutation away, changing the ~for~-loop into a ~fold~ or a ~scan~.
+
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something /new/ then it will still end up in this section.
+
+* Reflection
+Reading today's problem I had flashbacks to yesteryear's problem with snailfish
+numbers. A problem that took me many hours to complete. Thankfully it was a lot
+easier.
+
+I ended up being helped a lot by the language, which already implements list
+comparison in the same way that this problem expects it, making the rest of the
+implementation trivial.
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day13.fs][GitHub]].
