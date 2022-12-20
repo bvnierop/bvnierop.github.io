@@ -1,0 +1,224 @@
+#+title: Advent Of Code 2022 - Day 14: Regolith Reservoir
+#+date: [2022-12-14 Wed]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 14: Regolith Reservoir
+Summary: Given a 2D layout of a rocky formation, determine how much sand falls
+onto the rocks. Sand falls either directly or diagonally down. If all three
+directions are blocked, it stays in place.
+
+The source of the sand is at ~500, 0~. As it falls, the Y-coordinate increases.
+
+The input describes lines of rock formation. Below the described rock formation
+is an infinite void. Sand dropped below the rocks will fall forever.
+
+Example input:
+
+#+begin_src txt
+498,4 -> 498,6 -> 496,6
+503,4 -> 502,4 -> 502,9 -> 494,9
+#+end_src
+
+We can represent the rock formation as a set of points. Lookup in a set should
+be fast and the amount of sand is relatively sparse. It falls off the edge quite
+quickly.
+
+To parse the input we can parse each pair of integers splitted by ~" -> "~.  We
+can generate the points by looping over each pair of pairs.
+
+#+begin_src fsharp
+let pPoint = pint32 .>> pchar ',' .>>. pint32
+let pLine = sepBy pPoint (pstring " -> ")
+let parse str = parseOrDie pLine str
+#+end_src
+
+The ~points~ function makes a sequence out of each pair of points. We can then
+use that to map each pair of points, concatenate the sequences so that we get
+one sequence with /all/ points and then finally put those into a set.
+
+#+begin_src fsharp
+let points ((x1, y1), (x2, y2)) = seq {
+    for x = min x1 x2 to max x1 x2 do
+        for y = min y1 y2 to max y1 y2 do
+            yield (x, y)
+}
+
+let rocks =
+    input |> List.map parse
+    |> List.map (List.pairwise >> List.map points >> Seq.concat)
+    |> Seq.concat
+    |> Set.ofSeq
+#+end_src
+
+We need to stop at when sand reaches the lowest point. We get that by looking
+for the largest ~y~ in the set of points.
+
+#+begin_src fsharp
+let low = rocks |> Seq.maxBy snd |> snd
+#+end_src
+
+Then we'll start simulating falling sand. We'll drop one grain at a time. If a
+grain was dropped we'll add it's coordinate to the set with occupied tiles. If
+it fell into the infinite void then we won't mark anything. Therefore we know we
+can stop when the set did not grow bigger.
+
+#+begin_src fsharp
+let rec simulate occupied =
+    let withSand = addSand occupied low (500, 0)
+    if Set.count occupied = Set.count withSand then occupied
+    else simulate withSand
+
+let withSand = simulate rocks
+#+end_src
+
+To simulate a falling grain of sand we'll spawn it at ~500, 0~ and look for the
+three possible directions ~(x, y + 1)~, ~(x - 1, y + 1)~, ~(x + 1, y + 1)~, in
+order. If any of those are not occupied, that's where we drop to.
+
+#+begin_src fsharp
+let rec addSand occupied threshold (atX, atY) =
+    let targets = [(atX, atY + 1); (atX - 1, atY + 1); (atX + 1, atY + 1)]
+    if atY >= threshold then occupied
+    else
+        let target =
+            targets |> List.map (fun pt -> (pt, Set.contains pt occupied))
+            |> List.tryFind (fun (pt, occ) -> occ = false)
+        match target with
+        | Some (pt, _) -> addSand occupied threshold pt
+        | None -> Set.add (atX, atY) occupied
+#+end_src
+
+After all of this, the amount of sand dropped is the size of ~withSand~ minus
+the rocks.
+
+#+begin_src fsharp
+Set.count withSand - Set.count rocks
+#+end_src
+
+* Part 2
+Summary: It turns out there is no infinite void. Instead, two tiles below the
+lowest rock formation from the input, is the floor. It spreads infinitely in
+both horizontal directions. How much tiles will be filled with sand now?
+
+The problem statement mentions that the floor is infinite. Infinite is quite
+large and the sand will never quite reach infinity. In fact, the lowest point in
+my input is less than ~200~, so the sand, starting at ~x=500~ will never reach
+any ~x~ lower than ~300~ nor any ~x~ higher than ~700~.
+
+Rather than changing our logic, we can add a floor of that size to our set and
+wait for the set of occupied tiles to not grow bigger.
+
+#+begin_src fsharp
+let rocks = [300..700] |> List.fold (fun occ x -> Set.add (x, low + 2) occ) rocks
+#+end_src
+
+In this particular case it's not rolling off that will trigger the set not
+growing, though. Instead it's the fact that we'll add a grain of sand to ~500,0~
+twice. The second time the set won't grow and we're done.
+
+* Improvements
+Part two places around 24.000 tiles of sand with my input. The runtime of this
+algorithm was quite slow. Approximately 18 seconds on my machine slow. That's
+kind of insane for such a small problem, so I decided to investigate.
+
+The first realization is that ~Set.count~ in F# is actually ~O(n)~! That
+seems like a bad deal. My first solution was to build a tiny wrapper around F#'s
+~Set~ that keeps count. This reduced the runtime to slightly over 15 seconds,
+which is still too slow, but an improvement.
+
+The next improvement was to not process all three targets in ~addSand~. By
+switching from ~List~ to ~Seq~ the search becomes lazy and we only process until
+we found something.
+
+#+begin_src fsharp
+let rec addSand occupied threshold (atX, atY) =
+    // ... snip
+        let target =
+            targets |> Seq.map (fun pt -> (pt, Set.contains pt occupied))
+            |> Seq.tryFind (fun (pt, occ) -> occ = false)
+    // ... snip
+#+end_src
+
+This improves performance by another second, so we're down to 14 seconds.
+
+At this point I ran out of ideas and started profiling.
+
+** F#'s Set
+By far the most time was spent in ~Set.contains~. As it turns out, ~Set~ isn't
+very fast.
+
+I wrote a new wrapper around .NET's ~ImmutableSortedSet~ which has the same
+operations and same type of implementation (it's implemented as a sorted tree)
+and brought the runtime down to 8 seconds. Then I switched to .NET's
+~ImmutableHashSet~ for amortized constant time performance rather than
+~O(log(n))~ and brought the runtime down to three seconds.
+
+** The cost of immutability
+Trying to push this further, I decided to drop the immutable collection entirely
+and instead use a mutable 2D array to keep track of the sand and use a mutable
+integer to count the grains of sand. ~addSand~ now returns a boolean to indicate
+that sand was or was not added. Switching to a 2D array brought the runtime down
+to well under a second.
+
+The final bottleneck was in trying to find the next target using
+~Seq.tryFind~. Switching to a ~while~-loop with a mutable flag for an early
+abort brought the runtime down to about 250ms.
+
+~addSand~ now looks like this:
+
+#+begin_src fsharp
+let rec addSand (rocksA: bool[,]) threshold (atX, atY) =
+    let targets = [| [|atX; atY + 1|]; [|atX - 1; atY + 1|]; [|atX + 1; atY + 1|] |]
+    if atY >= threshold || rocksA[500,0] then false
+    else
+        let mutable found = false
+        let mutable i = 0
+        while not found && i < 3 do
+            found <- not rocksA[targets[i][0],targets[i][1]]
+            if not found then i <- i + 1
+
+        if found then addSand rocksA threshold (targets[i][0],targets[i][1])
+        else Array2D.set rocksA atX atY true; true
+#+end_src
+
+** Changing the algorithm
+We can push even further by realizing that we don't have to simulate every grain
+of sand individually. Since we /know/ that we will end at ~500,0~ and that every
+reachable spot from there /will/ be filled, we can just visit every spot that
+wasn't already occupied and count them.
+
+#+begin_src fsharp
+let rec addSand (rocksA: bool[,]) threshold (atX, atY) =
+    let targets = [| [|atX; atY + 1|]; [|atX - 1; atY + 1|]; [|atX + 1; atY + 1|] |]
+    let mutable count = 0
+    if not (atY >= threshold || rocksA[500,0]) then
+        for i = 0 to 2 do
+            if not rocksA[targets[i][0],targets[i][1]] then 
+                    count <- count + (addSand rocksA threshold (targets[i][0],targets[i][1]))
+    Array2D.set rocksA atX atY true
+    count + 1
+#+end_src
+
+We can then return the result of ~addSand rocksA low (500, 0)~. This runs in
+about 15ms.
+
+* Reflection
+Today's problem wasn't very difficult. It was, however, fun to write. Finding
+out that the solution for part 2 was so slow was disheartening and making it
+quicker was a fun exercise.
+
+I'll probably be improving performance on more problems as we progress to the
+harder part of Advent of Code. It'll be interesting to see if I can stay away
+from mutable code while pushing performance, though.
+
+On to the next one!
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day14.fs][GitHub]].
