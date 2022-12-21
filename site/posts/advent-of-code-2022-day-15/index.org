@@ -1,0 +1,218 @@
+#+title: Advent Of Code 2022 - Day 15: Beacon Exclusion Zone
+#+date: [2022-12-15 Thu]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 15: Beacon Exclusion Zone
+Summary: Given is a list of sensors and a beacon that is closest to the sensor,
+in integer 2D coordinates. Sensors can only lock on to the beacon closest to
+them as measured by the Manhattan distance.
+
+On row ~y=2000000~, how many ~x~-positions cannot possibly contain a beacon?
+
+Example input:
+
+#+begin_src txt
+Sensor at x=2, y=18: closest beacon is at x=-2, y=15
+Sensor at x=9, y=16: closest beacon is at x=10, y=16
+Sensor at x=13, y=2: closest beacon is at x=15, y=3
+Sensor at x=12, y=14: closest beacon is at x=10, y=16
+Sensor at x=10, y=20: closest beacon is at x=10, y=16
+Sensor at x=14, y=17: closest beacon is at x=10, y=16
+Sensor at x=8, y=7: closest beacon is at x=2, y=10
+Sensor at x=2, y=0: closest beacon is at x=2, y=10
+Sensor at x=0, y=11: closest beacon is at x=2, y=10
+Sensor at x=20, y=14: closest beacon is at x=25, y=17
+Sensor at x=17, y=20: closest beacon is at x=21, y=22
+Sensor at x=16, y=7: closest beacon is at x=15, y=3
+Sensor at x=14, y=3: closest beacon is at x=15, y=3
+Sensor at x=20, y=1: closest beacon is at x=15, y=3
+#+end_src
+
+For the sample input, take ~y=10~ instead.
+
+Read the full problem statement [[https://adventofcode.com/2022/day/15][here]].
+
+A tile cannot contain a beacon if it's inside the range of any sensor, /unless/
+it already contains a beacon. That is because if there was a beacon inside the
+range of a sensor, the range of that sensor would be smaller and another beacon
+would fall outside the range.
+
+Given the constaints of the problem statement we have to fear that part two is
+going to ask us to find the same number for many rows, say between ~0~ and
+~200000~. So we have to be smarter than just counting every single ~x~ position.
+
+Instead we can define the range for all sensors at a given X position, in the
+form ~(firstX, lastX)~, where the range will /include/ ~lastX~. We can
+then merge those ranges and find their lengths. Two ranges can be merged if they
+either overlap or are adjacent to each other.
+
+#+begin_src fsharp
+let mergeable (start1, finish1) (start2, finish2) =
+    (not <| isDisjoint (start1, finish1) (start2, finish2))
+    || start2 - finish1 = 1
+#+end_src
+
+Two ranges overlap if they are not disjoint. Two ranges are disjoint if one
+range's largest ~x~ is smaller than the other's smallest ~x~.
+
+#+begin_src fsharp
+let isDisjoint range range2 =
+    match (range1, range2) with
+    | ((l1, h1), (l2, h2)) when h2 < l1 -> true
+    | ((l1, h1), (l2, h2)) when h1 < l2 -> true
+    | _ -> false
+#+end_src
+
+In order to merge two ranges we simply take the smallest ~x~ and the largest ~x~
+between them.
+
+#+begin_src fsharp
+let merge (s1, e1) (s2, e2) = ((min s1 s2), (max e1 e2))
+#+end_src
+
+In order to merge an entire sequence of ranges we first have to sort them. This
+way we can ensure that if we look at two ranges and they aren't mergeable, no
+other range can be merged with the first one. That, in turn, ensures we only
+have to look at each range at most twice.
+
+#+begin_src fsharp
+let compact (ranges: (int * int) seq) =
+    let sortedRanges = ranges |> Seq.sort
+    Seq.tail sortedRanges
+    |> Seq.fold (fun (head, ranges) nextRange ->
+        if mergable head nextRange then (merge head nextRange, ranges)
+        else (nextRange, (head :: ranges))) (Seq.head sortedRanges, []) 
+    |> (fun (head, ranges) -> head :: ranges)
+    |> List.rev
+#+end_src
+
+** Determining the range of a sensor at row ~y~
+To determine the range of a sensor at any given row, we must first determine
+it's maximum horizontal or vertical range. Since a sensor can scan no further
+than its closest beacon, that range is the Manhattan distance to said beacon.
+
+The Manhattan distance between two points is the difference between the ~x~
+coordinates plus the difference between the ~y~ coordinates. We take the
+absolute value so that we don't have to check which is the larger one.
+
+#+begin_src fsharp
+let manhattanDistance (x1, y1) (x2, y2) = abs (x2 - x1) + abs (y2 - y1)
+#+end_src
+
+If the ~y~ we are looking it is farther away from the sensor than the maximum
+distance, the sensor has no coverage on that row at all. If it's at /precisely/
+the maximum distance, it covers 1 tile: the sensor's ~x~ coordinate. For every
+row closer to the sensor, that range extends by 1 tile in both directions.
+
+#+begin_src fsharp
+let rangeForSensorAtRow y ((sensorX, sensorY), beacon) =
+    let maxDistance = Point.manhattanDistance (sensorX, sensorY) beacon
+    let distance = abs (sensorY - y)
+    let diff = maxDistance - distance
+    if diff < 0 then None
+    else Some (sensorX - diff, sensorX + diff)
+#+end_src
+
+** Putting it together
+
+Since the test input requires us to solve for a different ~y~ than the real
+input, we take ~y~ as an argument.
+
+We parse our input to a list of ~(sensorPoint, beaconPoint)~ called
+~sensorInfo~. We need to count the beacons at ~y~ because while they are in
+sensor range, they don't count towards the spots where a beacon cannot be. After
+all, there's a beacon!
+
+#+begin_src fsharp
+let beaconsAtY =
+    sensorInfo
+    |> List.map snd
+    |> List.filter (fun (_bx, by) -> by = y)
+    |> List.distinct |> List.length
+#+end_src
+
+Then we take our sensor info, convert it to ranges, select only those sensors
+that have any coverage on the row, collapse the ranges and sum their lengths.
+
+Finally we subtract the beacons.
+
+#+begin_src fsharp
+let solve y input =
+
+    sensorInfo
+    |> List.map (rangeForSensorAtRow y)
+    |> List.choose id
+    |> Range.compact
+    |> List.sumBy Range.length
+    |> (fun s -> s - beaconsAtY)
+#+end_src
+
+* Part 2
+Summary: There is a beacon that is not in range of any of the sensors. It's
+inside the area between ~0,0~ and ~4000000,400000~. There exists precisely /one/
+location where it can be. Determine the beacon's /tuning frequency/, which is
+the ~x~ coordinate multiplied by ~4000000~ added to the ~y~ coordinate.
+
+For the test input, look at the area between ~0,0~ and ~20,20~.
+
+As predicted, we need to look at a very large area. Is it too large for our
+setup? That depends on how patient you are.
+
+With the things we've built so far, we can loop over all rows and for each row
+determine the sensor ranges. Since we're looking for a single tile, all rows
+except the row with that tile, must have one range. The offending row will have
+two ranges.
+
+If we have the same ~sensorInfo~ as before, and a ~maxY~ that determines the the
+maximum row, here's how that looks:
+
+#+begin_src fsharp
+{0..maxY}
+|> Seq.pick (fun y ->
+    let ranges =
+        sensorInfo |> List.map (rangeForSensorAtRow y) |> List.choose id
+        |> Range.compact
+    if List.length ranges = 1 then None
+    else Some (int64 y + 4000000L * int64 (ranges |> List.head |> snd |> ((+) 1))))
+#+end_src
+
+This has a runtime of about 45 seconds of my machine, which is not very good,
+but it'll do.
+
+* Improvements
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using ~for~-loops and mutation and then refactor the
+mutation away, changing the ~for~-loop into a ~fold~ or a ~scan~.
+
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something /new/ then it will still end up in this section.
+
+* Reflection
+When reading today's problem statement I feared that part two would be quite
+hard. Given the large numbers I was surprised that it could be brute forced so
+easily. There exists a /much/ better method, but I lack the time to explore and
+understand it.
+
+At the same time I would have expected my solution to run faster. 4000000 is a
+large number, but given that I only look at the /sensors/, and that there are
+only 38 of those at my input, I would have expected a faster runtime. There's
+room for improvement there, too.
+
+
+At the same time I would have expected my solution to run faster. 4000000 is a
+large number, but given that I only look at the /sensors/, and that there are
+only 38 of those at my input, I would have expected a faster runtime. There's
+room for improvement there, too.
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day15.fs][GitHub]].

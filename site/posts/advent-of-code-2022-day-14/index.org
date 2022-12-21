@@ -27,6 +27,8 @@ Example input:
 503,4 -> 502,4 -> 502,9 -> 494,9
 #+end_src
 
+Read the full problem statement [[https://adventofcode.com/2022/day/14][here]].
+
 We can represent the rock formation as a set of points. Lookup in a set should
 be fast and the amount of sand is relatively sparse. It falls off the edge quite
 quickly.
