@@ -210,9 +210,4 @@ large number, but given that I only look at the /sensors/, and that there are
 only 38 of those at my input, I would have expected a faster runtime. There's
 room for improvement there, too.
 
-
-At the same time I would have expected my solution to run faster. 4000000 is a
-large number, but given that I only look at the /sensors/, and that there are
-only 38 of those at my input, I would have expected a faster runtime. There's
-room for improvement there, too.
 The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day15.fs][GitHub]].
