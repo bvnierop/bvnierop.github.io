@@ -1,0 +1,302 @@
+#+title: Advent Of Code 2022 - Day 16: Proboscidea Volcanium
+#+date: [2022-12-16 Fri]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 16: Proboscidea Volcanium
+Summary: Given a list of valves, their flow rates, and paths between them, how
+much pressure can you release in 30 minutes? Opening a valve or traveling a path
+takes 1 minute.
+
+Every minute after opening a valve the total pressure released by having opened
+it increased by the flow rate of that valve.
+
+Example input:
+
+#+begin_src txt
+Valve AA has flow rate=0; tunnels lead to valves DD, II, BB
+Valve BB has flow rate=13; tunnels lead to valves CC, AA
+Valve CC has flow rate=2; tunnels lead to valves DD, BB
+Valve DD has flow rate=20; tunnels lead to valves CC, AA, EE
+Valve EE has flow rate=3; tunnels lead to valves FF, DD
+Valve FF has flow rate=0; tunnels lead to valves EE, GG
+Valve GG has flow rate=0; tunnels lead to valves FF, HH
+Valve HH has flow rate=22; tunnel leads to valve GG
+Valve II has flow rate=0; tunnels lead to valves AA, JJ
+Valve JJ has flow rate=21; tunnel leads to valve II
+#+end_src
+
+All of the valves start closed. You start at valve ~AA~.
+
+Read the full problem statement [[https://adventofcode.com/2022/day/16][here]].
+
+In order to find a solution we have to try every possible route. Now, attempting
+every possible step at every minute is too much work, even though the search
+tree is relatively sparse. We need some pruning.
+
+Instead of attempting every possible choice at every minute, we can also try
+every order of valves that have a flow rate larger than ~0~. Opening a valve
+that has a flow rate of ~0~ makes no sense, so we won't waste any time on
+that. Both in the example input and in the real input, many valves have ~0~ flow
+rate.
+
+In order to determine how long it takes to move from any valve to any other
+valve, we can precompute the paths. To find the distances between all pairs of
+valves we can use the [[https://en.wikipedia.org/wiki/Floyd%E2%80%93Warshall_algorithm][Floyd-Warshall algorithm]], which works as long as there are
+no cycles with negative weights. Our graph has no negative weights at all, so
+that's fine.
+
+We'll store the distances between any two valves in a 2D array. To index it
+we'll use a lookup table to convert from valve tag to an integer index.
+
+#+begin_src fsharp
+let makeLookup adj =
+    adj |> Map.keys |> Seq.indexed
+    |> Seq.fold (fun lookup (i, tag) -> Map.add tag i lookup) Map.empty
+#+end_src
+
+Making the lookup table requires an adjacency list, that we'll create from the
+input. The adjacency list will be a map, having the tag as key and a tuple with
+the flow rate and the possible destinations as a value.
+
+#+begin_src fsharp
+let pTag = anyString 2
+let pLine =
+    skipString "Valve " >>. pTag .>> skipString " has flow rate="
+    .>>. (pint32 .>> (skipString "; tunnels lead to valves " <|> skipString "; tunnel leads to valve ")
+            .>>. sepBy pTag (pstring ", "))
+
+let parseInput (input: string list) =
+    input |> List.map (parseOrDie pLine)
+    |> List.fold (fun map (tag, data) -> Map.add tag data map) Map.empty
+#+end_src
+
+Given both the adjacency list and the lookup we can run Floyd-Warshall. We start
+by create an array that can hold every pair of valves, initiazing their
+distances to a value far greater than the maximum that is really possible.
+
+Then we set the distance from each valve to itself to ~0~. Next we iterate over
+the entries in the adjacency list and set the distance for every known
+connection to ~1~, as it takes 1 minute to move direct paths. Finally we look at
+every possible indirect path between two valves and if it's better than the path
+we already know, we store the new distance instead.
+
+#+begin_src fsharp
+let floydWarshall adj lookup =
+    let maxValue = Map.values lookup |> Seq.max
+    let dist = Array2D.init (maxValue + 1) (maxValue + 1) (fun s d -> 100 * 100)
+    // Set v -> v to 0
+    for v = 0 to maxValue do dist[v,v] <- 0
+
+    // Set known distances
+    adj |> Map.iter (fun s (_, n) ->
+        for d in n do
+            dist[lookup[s],lookup[d]] <- 1)
+
+    // Run FW
+    for k = 0 to maxValue do
+        for i = 0 to maxValue do
+            for j = 0 to maxValue do
+                dist[i,j] <- min dist[i,j]
+                                 (dist[i,k] + dist[k,j])
+    dist
+#+end_src
+
+The final thing we need in order to search the best path is a lookup for the
+pressures based on the integer id of each valve, rather than the tag.
+
+#+begin_src fsharp
+let makePressureLookup adj (lookup: Map<string, int>) =
+    adj |> Map.fold (fun state valve (pressure, _) ->
+        Map.add lookup[valve] pressure state) Map.empty
+#+end_src
+
+Now we can search. We must keep track of the time to see how much we have
+remaining, of the valves we have already opened so that we don't try to open
+valves twice, and finally of the total pressure we're releasing.
+
+At every step we'll find the next destination. It's a valve that has pressure
+(because opening a valve with ~0~ pressure is pointless) and that has not been
+opened before. Also we must be able to reach it in time. Note that subtracting
+/just/ the distance from the time isn't enough, it also takes a minute to /open/
+the valve.
+
+We then keep the best score out of the current score and continuing to another
+valve.
+
+#+begin_src fsharp
+let search from distances (pressures: Map<int, int>) =
+    let rec loop t at opened pressure =
+        let mutable bestScore = pressure
+        for d = 0 to (Array2D.length1 distances) - 1 do
+            let targetTime = t - distances[at,d] - 1
+            if not <| Set.contains d opened && pressures[d] > 0 && targetTime >= 0 then
+                bestScore <- max bestScore
+                                    (loop <| t - distances[at,d] - 1 <| d <| Set.add d opened <| pressure + (targetTime * pressures[d]))
+        bestScore
+    loop 30 from Set.empty 0
+#+end_src
+
+Putting it all together:
+
+#+begin_src fsharp
+let solve1 (input: string list) =
+    let adj = input |> parseInput
+    let lookup = makeLookup adj
+    let distances = floydWarshall adj lookup
+    let pressureLookup = makePressureLookup adj lookup
+    search lookup["AA"] distances pressureLookup
+#+end_src
+
+* Part 2
+Summary: You're not alone at this system of tunnels and valves. There is also a
+group of elephants. You can spend four minutes to /train an elephant to help
+you/. Now there's two of you, but you have only 26 minutes.
+
+What is the maximum pressure you can release?
+
+Read the full problem statement [[https://adventofcode.com/2022/day/16#part2][here]] (only if you solved part 1).
+
+The key observation here is that you don't have to run the simulation for
+yourself and the elephant simultaneously. They can run independent of one
+another.
+
+The /simple/ but slow way to find the answer is to, for each possible solution,
+tack on a second run and then find the best one. On my machine this takes a good
+17 minutes for my input, but it's a solution.
+
+We add a boolean to our loop that keeps track of if this is the run for the
+elephant or for ourselves. Then every time we loop we take the current answer
+and add a run for the elephant to it. At the end we take the best answer.
+
+#+begin_src fsharp
+let dfs from distances (pressures: Map<int, int>) =
+    let mutable answers = Set.empty
+    let rec loop t at opened elephant pressure =
+        if not elephant then
+            answers <- answers |> HashSet.add (pressure + (loop 26 from opened true 0))
+
+        let mutable bestScore = pressure
+        for d = 0 to (Array2D.length1 distances) - 1 do
+            let targetTime = t - distances[at,d] - 1
+            if not <| Set.contains d opened && pressures[d] > 0 && targetTime >= 0 then
+                bestScore <- max bestScore
+                                    (loop <| t - distances[at,d] - 1 <| d <| Set.add d opened <| elephant <| pressure + (targetTime * pressures[d]))
+        bestScore
+    loop 26 from Set.empty false 0 |> ignore
+    answers |> Set.maxElement
+#+end_src
+
+** We can do better
+There's a better way to do this. It requires a /bit of magic/, but it's a /lot/
+faster.
+
+At the beginning we observed that we don't have to run both ourselved and the
+elephant together. But we also don't have to run one after the other.
+
+Let's look at our original solution. Instead of keeping track of the best
+result, we can keep track of every configuration of opened valves and the
+highest amount of pressure we can release with those valves opened.
+
+We can then take the best possible route, note which valves we opened and select
+a route that opened /none of those/ and assign that route to the elephant. We
+can now combine the released pressure of those two routes for the result.
+
+But how do we find the /best/ combination of routes that have no common valves.
+
+One way to do this is to encode which valves were opened as a bitmask. The input
+has around 40 valves, so an ~int64~ should do it. We are already representing
+valves as integers. We can use that integer as the index for the bit to set.
+
+#+begin_src fsharp
+let openedToBitSet opened =
+    opened |> Seq.fold (fun bitSet i -> bitSet ||| (1L <<< i)) 0L
+#+end_src
+
+We'll use that bitmask to keep track of all routes, with a tiny helper to update
+a route. We must update routes because the order in which the same valves are
+opened makes a difference for the total amount of pressure released.
+
+#+begin_src fsharp
+let mutable routes = Map.empty<int64, int>
+
+let updateRoutes (bitset: int64) (pressure: int) =
+    routes <- Map.change bitset (function
+    							 | None -> Some pressure
+                                 | Some e -> Some (max e pressure)) routes
+#+end_src
+
+This time when we loop, after every choice we save the result, because it's a
+/potential/ route. We ignore the result of the loop because it's useless.
+
+#+begin_src fsharp
+let rec loop t at opened pressure =
+    updateRoutes (openedToBitSet opened) pressure
+
+    let mutable bestScore = pressure
+    for d = 0 to (Array2D.length1 distances) - 1 do
+        let targetTime = t - distances[at,d] - 1
+        if not <| Set.contains d opened && pressures[d] > 0 && targetTime >= 0 then
+            bestScore <- max bestScore
+                                (loop <| t - distances[at,d] - 1 <| d <| Set.add d opened <| pressure + (targetTime * pressures[d]))
+    bestScore
+loop 26 from Set.empty 0 |> ignore
+#+end_src
+
+Now we need to find the best /combination of routes/. We start by identifying
+another bitmask. This one represents the valves that, at the beginning, have a
+pressure larger than 0 and therefore have to be opened.
+
+Next we look at each entry in the stored routes. Remember that these are bitmask
+representing the opened valves. /If/ a route exists that opened all the valves
+that our route did not open, it's the ~eXclusive bitwise OR~ of the valves our
+route opened and all valves that have to be opened.
+
+We can then check that that route exists, and if it does, combine the
+results. The best such combination is what we're after.
+
+#+begin_src fsharp
+let mask = Map.keys pressures |> Seq.fold (fun mask i -> if pressures[i] > 0 then mask ||| (1L <<< i) else mask) 0L
+let mutable best = 0
+for key in Map.keys routes do
+    let inverse = key ^^^ mask
+    if Map.containsKey inverse routes then
+        best <- max best (routes[key] + routes[inverse])
+best
+#+end_src
+
+* Improvements
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using ~for~-loops and mutation and then refactor the
+mutation away, changing the ~for~-loop into a ~fold~ or a ~scan~.
+
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something /new/ then it will still end up in this section.
+
+* Reflection
+I had a hard time with this day. I was done with part one very quickly, but part
+two caused quite the headache. Probably caused by sleep depravation, every
+solution I came up with at first used multiple elephants, and I just could not
+get my head around /why/. More importantly, I could not get my head around /how
+not/.
+
+In the end, frustrated I came up with the 17 minute solution. While it
+ran, being frustrated, I came up with the faster solution and coded it up. Being
+much simpler to reason about, I had it done as the other solution popped out
+its answer.
+
+Thankfully the faster solution was also correct, and I could end the day feeling
+decent about my solve. I need more sleep, though.
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day16.fs][GitHub]].
