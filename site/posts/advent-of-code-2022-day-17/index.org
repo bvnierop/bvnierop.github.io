@@ -1,0 +1,355 @@
+#+title: Advent Of Code 2022 - Day 17: Pyroclastic Flow
+#+date: [2022-12-17 Sat]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 17: Pyroclastic Flow
+Summary: Given a list of moves, repeating if it runs out, simulate a game of
+/Tetris/, without removing full lines.
+
+How high is your tower of rocks (pieces) after ~2022~ rocks have fallen?
+
+Example input:
+
+#+begin_src txt
+>>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>
+#+end_src
+
+Read the full problem statement [[https://adventofcode.com/2022/day/17][here]].
+
+After yesterday's foray into bit masks, today I decided to go for bit masks
+again.
+
+Tetris rocks have odd shapes. To see if they can move to the left, right or
+down, we have to verify that they have no collision with what's already there,
+be it wall, floor or another piece. If we represent each row as an integer, with
+each individual bit indicating if an index in that row is occupied, then it's
+easy to check if the merger of two rows causes a collision. Specifically, two
+rows can merge if their /bitwise AND/ is ~0~.
+
+If we represent a falling piece in a vacuum, then we can use this to test both
+vertical movement as well as horizontal movement. A piece can move to the left
+(or right) if the /bitwise AND/ of the row that it's in and the moved piece is
+~0~.
+
+Representation of the rocks is a bit tedious. We represent them as a list of
+bit masks, with each entry in the list representing a row. Representing the
+floor and the walls is a lot more straight forward.
+
+Note that the /least significant bit/ matches up with the /left side of the
+chamber/. This way we can count indices logically, but when representing the
+binary it's reversed.
+
+#+begin_src fsharp
+let rocks = [
+    [0b1111]
+    [0b010
+     0b111
+     0b010]
+    [0b100
+     0b100
+     0b111]
+    [0b1
+     0b1
+     0b1
+     0b1]
+    [0b11
+     0b11]
+]
+let floor = 0b111111111
+let wall = 0b100000001
+#+end_src
+
+We need a circular collection. It seems like this isn't very difficult to do. We
+can turn a sequence circular by first yielding all of it's items and then
+recursively keep doing that.
+
+#+begin_src fsharp
+let circular sequence =
+    let rec items () = seq {
+        for e in sequence do yield e
+        yield! items ()
+    }
+    items ()
+#+end_src
+
+It turns out that doing this and then asking a large number of items from it is
+very, very slow. So instead, we build a more efficient one using an array and a
+modulo on the index. The ~modE~ function works correctly for negative numbers.
+
+#+begin_src fsharp
+module CircularCollection =
+    let modE a b = ((a % b) + b) % b
+    type t<'a> = ('a array * int * int)
+    let init (source: 'a seq) =
+        let asArray = Seq.toArray source
+        (asArray, 0, Array.length asArray)
+    let moveNext ((source, index, length): t<'a>) =
+        let nextIndex = modE (index + 1) length
+        (source, nextIndex, length)
+    let item ((source, index, _length): t<'a>) =
+        source[index]
+    let itemAt at ((source, index, length): t<'a>) =
+        let idx = modE (index + at) length
+        source[idx]
+    let index ((_source, index, _length): t<'a>) = index
+    let length ((_source, _index, length): t<'a>) = length
+#+end_src
+
+The problem states that a new rock always spawns with three rows between its
+bottom and the top of the current tower, and two tiles from the left wall. We shift
+the rock by three bits to put it in the right spot and add three wall tiles to
+the existing chamber.
+
+#+begin_src fsharp
+let spawn rock chamber =
+    let shiftedRock =
+        rock |> List.map (fun line -> line <<< 3)
+
+    let extendedChamber =
+        rock
+        |> List.fold (fun chamber rock -> wall :: chamber) chamber
+    (shiftedRock, wall :: wall :: wall :: extendedChamber)
+#+end_src
+
+We also need a [[https://en.wikipedia.org/wiki/Zipper_(data_structure)][zipper]]. The chamber is represented as a list. As the rock falls
+through the chamber we need to access and change various different points in
+that list. A basic implementation for a list zipper is not very difficult. Note
+that ~update~ updates the /tail/ of the zipper.
+
+#+begin_src fsharp
+module ListZipper =
+    let init (list: 'a list): ('a list * 'a list) = ([], list)
+    let next (head, tail) =
+        match tail with
+        | x::xs -> x :: head, xs
+        | [] -> failwith "Cannot zip next on empty list"
+        
+    let prev (head, tail) =
+        match head with
+        | x::xs -> xs, x :: tail
+        | [] -> failwith "Cannot zip prev on empty list"
+        
+    let update (updater: 'a list -> 'a list) (head, tail): ('a list * 'a list) = (head, updater tail)
+    
+    let hasNext (_head, tail) =
+        match tail with | _x::_xs -> true | _ -> false
+        
+    let hasPrev (head, _tail) =
+        match head with | _x::_xs -> true | _ -> false
+        
+    let view (_head, tail) = tail
+    
+    let rec rebuild (head, tail) =
+        match head with
+        | _x::_xs -> rebuild <| prev (head, tail)
+        | [] -> tail
+#+end_src
+
+Next, we need a bunch of helpers. ~applyJet~ moves a rock in the direction of
+the jet. ~isValidPosition~ checks that the rock can be in the given position in
+the chamber. It does so by checking the /bitwise AND/ of all rows of both itself
+and the part of the chamber it's in. We use ~Seq.forall2~ rather than
+~List.forall2~ because ~Seq~ stops when the shorter list runs out of elements.
+
+~tryFall~ tries to move the rock down one position. ~tryJet~ attempts to apply a
+jet. ~tryStep~ combines the two. Note that if trying a jet fails, the rock
+simply does not move to the side. If falling fails, the rock settles in place
+and we move on to the next rock.
+
+#+begin_src fsharp
+let applyJet jet rock =
+    let fn = match jet with | '<' -> (>>>) | '>' -> (<<<) | _ -> failwith "Invalid jet"
+    rock |> List.map (fun x -> fn x 1)
+
+let isValidPosition rock chamber =
+    Seq.forall2 (fun r c -> r &&& c = 0) <| rock <| ListZipper.view chamber
+
+let tryFall chamber rock =
+    let nextChamberState = ListZipper.next chamber // should always work because we have a floor
+    if isValidPosition rock nextChamberState then Some nextChamberState
+    else None
+
+let tryJet chamber jet rock =
+    let shiftedRock = applyJet jet rock
+    if isValidPosition shiftedRock chamber then Some shiftedRock
+    else None
+
+let tryStep chamber rock jets =
+    let shiftedRock = Option.defaultValue <| rock <| tryJet chamber (CircularCollection.item jets) rock
+    let fallen = tryFall chamber <| shiftedRock
+    (Option.defaultValue chamber fallen, shiftedRock, CircularCollection.moveNext jets, Option.isSome fallen)
+#+end_src
+
+Merging uses the ~update~ method of our zipper, merging the chamber and the
+rock, putting it into place. We can merge each row by using the /bitwise OR/
+operator.
+
+If there are empty rows then we remove them. This ensures both that when we
+spawn the next rock we can blindly add three empty rows as well as that the
+height of our tower is simply the amount of rows of the chamber.
+
+#+begin_src fsharp
+let merge chamber rock =
+    chamber
+    |> ListZipper.update (fun tail ->
+            let top = (Seq.map2 (fun c r -> c ||| r) <| tail <| rock) |> Seq.toList
+            let rest = List.skip (List.length rock) tail
+            List.append top rest)
+    |> ListZipper.rebuild
+    |> List.reject ((=) wall)
+#+end_src
+
+That in place, we can simulate dropping a single rock. We try a single step. If
+succesful, we recursively try more steps. If not then we merge the rock into the
+current position with the chamber.
+
+#+begin_src fsharp
+let simulateOneRock chamber rocks jets =
+    let rec doSimulate chamber rock jets =
+        let (newChamber, newRock, newJets, success) = tryStep chamber rock jets
+        if success then doSimulate newChamber newRock newJets
+        else (merge chamber newRock, CircularCollection.moveNext rocks, newJets)
+    let (rock, chamber) = spawn (CircularCollection.item rocks) chamber
+    doSimulate <| ListZipper.init chamber <| rock <| jets
+#+end_src
+
+To simulate multiple falling rocks we simply call ~Seq.scan~ on a range. The
+~last~ element in that sequence is the final configuration of our chamber.
+
+#+begin_src fsharp
+let simulateMultipleRocks chamber rocks jets n =
+    {1..n}
+    |> Seq.scan (fun (c, r, j) _i -> simulateOneRock c r j) (chamber, rocks, jets)
+#+end_src
+
+To solve, we simulate ~count = 2022~ rocks and take the height of the resulting
+chamber, subtracting the floor.
+
+#+begin_src fsharp
+let rockCycle = CircularCollection.init rocks
+let jetCycle = CircularCollection.init jets
+
+simulateMultipleRocks [floor] rockCycle jetCycle count
+|> Seq.last
+|> (fun (c, _, _) -> List.length c - 1)
+#+end_src
+
+
+* Part 2
+Summary: What's the height after 1000000000000 rocks?
+
+Read the full problem statement [[https://adventofcode.com/2022/day/17#part2][here]] (only if you solved part 1).
+
+I can't say I didn't see this one coming. There's no way that we can simulate
+the falling of this many rocks, so we have to come up with a better idea.
+
+We can detect a cycle. If we see the same floor configuration at the same rock
+and the same jet, we've discovered a cycle. We can then divide our large number
+by the amount of rocks in the cycle and multiply that by the height of the
+cycle.
+
+What remains then are the parts of the tower before the cycle starts, and what
+remains after the last cycle ends but there is no full cycle to the
+1000000000000th rock.
+
+We can store the floor configuration as a height map. For each column the height
+map represents the distance of the closest occupied tile from the top. The index
+of the rock and the jet are simply integers.
+
+#+begin_src fsharp
+let heightMap (chamber: int list) =
+    let heightForIndex n =
+        chamber |> List.findIndex (fun line -> line &&& (1 <<< n) <> 0)
+    [7..-1..1]
+    |> List.map heightForIndex
+#+end_src
+
+Then we create a few helpers to cache what we've seen. For each combination of
+height map, rock index and jet index, we store after how many rocks we've seen
+this configuration for the first time and how high the tower was at that point.
+
+#+begin_src fsharp
+let emptyCache (): Map<(int list * int * int), (int * int)> = Map.empty
+let cacheKey chamber rocks jets = (heightMap chamber, CircularCollection.index rocks, CircularCollection.index jets)
+let inCache chamber rocks jets cache = Map.containsKey (cacheKey chamber rocks jets) cache
+let addToCache index chamber rocks jets cache = Map.add (cacheKey chamber rocks jets) (index, List.length chamber) cache
+let cacheValue chamber rocks jets (cache: Map<(int list * int * int), (int * int)>) = cache[cacheKey chamber rocks jets]
+#+end_src
+
+Now we can start finding a cycle. To find a cycle we simulate dropping a rock
+and then checking the cache to see if we've seen the configuration before. If we
+did not see the configuration before then we recursively continue simulating. If
+we did see the configuration before then we found a cycle. We subtract the
+stored height and index from the current height and index and return a tuple
+containing the first time we saw the cycle, the amount of rocks in the cycle and
+the height difference caused by the cycle.
+
+#+begin_src fsharp
+let findCycle () =
+    let rec loop cache index (chamber, rocks, jets) =
+        let (c, r, j) = simulateOneRock chamber rocks jets
+        if not (inCache c r j cache) then loop <| addToCache index c r j cache <| index + 1 <| (c, r, j)
+        else let curHeight = List.length c
+                let (cachedIndex, cachedHeight) = cacheValue c r j cache
+                (cachedIndex, index - cachedIndex, curHeight - cachedHeight)
+    loop <| emptyCache () <| 1 <| ([floor], rockCycle, jetCycle)
+
+let (cStart, cLength, cHeight) = findCycle ()
+#+end_src
+
+Next we determine how much we still have to simulate and how much we can
+calculate based on the cycle. ~pre~ is the number of rocks to simulate /before
+the cycle starts/. ~cycles~ is the amount of cycles. We mutiply it by the height
+of an individual cycle to determine the total height from cycles. ~post~ is the
+amount of steps we still need to simulate after the /last/ cycle.
+
+The order in which we do this, doesn't matter. If a cycle occurs after ~n~
+rocks, a cycle of the same length and height occurs after ~n + 1~ blocks. This
+means we can simulate ~pre~ and ~post~ together and add the cycles after that.
+
+#+begin_src fsharp
+let pre = cStart
+let cycles = (steps - int64 cStart) / int64 cLength
+let post = int32 <| (steps - int64 cStart) % int64 cLength
+
+let heightFromCycles = cycles * int64 cHeight
+
+let leftToSimulate = pre + post
+
+simulateMultipleRocks [floor] rockCycle jetCycle leftToSimulate
+|> Seq.last
+|> (fun (c, _, _) -> int64 <| List.length c - 1)
+|> ((+) heightFromCycles)
+#+end_src
+
+* Improvements
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using ~for~-loops and mutation and then refactor the
+mutation away, changing the ~for~-loop into a ~fold~ or a ~scan~.
+
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something /new/ then it will still end up in this section.
+
+* Reflection
+Today was a fun problem, full of tiny little details. I have to admit that I was
+way to hungover to solve a problem with this many details. I had a hard time
+wrapping my head around basically all of it and spent way too long.
+
+It would have been a better problem if I did not have a Christmas party the
+night before. But such is life.
+
+On to the next one!
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day17.fs][GitHub]].
