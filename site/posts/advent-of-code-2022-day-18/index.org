@@ -1,0 +1,170 @@
+#+title: Advent Of Code 2022 - Day 18: Boiling Boulders
+#+date: [2022-12-18 Sun]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 18: Boiling Boulders
+Summary: Given a list of locations of 1x1x1 cubes on a 3D grid, how many sides
+are exposed?
+
+Example input:
+
+#+begin_src txt
+2,2,2
+1,2,2
+3,2,2
+2,1,2
+2,3,2
+2,2,1
+2,2,3
+2,2,4
+2,2,6
+1,2,5
+3,2,5
+2,1,5
+2,3,5
+#+end_src
+
+Read the full problem statement [[https://adventofcode.com/2022/day/18][here]].
+
+After the details and trickiness of the past few days, this is a breath of fresh
+air. Two cubes are adjacent if one coordinate differs by at most one from
+another. If two cubes are adjacent that means that for both of them, one side is
+not exposed. Cubes have six sides. So for the example input, if taken only the
+first two cubes, 10 sides are exposed since they are adjacent.
+
+#+begin_src fsharp
+let isConnected (x1, y1, z1) (x2, y2, z2) =
+    (abs (x1 - x2)) + (abs (y1 - y2)) + (abs (z1 - z2)) = 1
+#+end_src
+
+We'll create a helper to generate all unique pairs in a single list. For each
+element in the list, loop over the remaining elements and return their combination
+as a pair. Then recurse on the remaining elements.
+
+#+begin_src fsharp
+let rec pairs list = seq {
+    match list with
+    | x::xs -> for e in xs do yield (x, e)
+               yield! pairs xs
+    | _ -> ()
+}
+#+end_src
+
+To determine how many sides are exposed, we count all pairs of connected
+cubes using our [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Lib/Seq.fs][~countWhere~]] helper. We multiply that number by 2 because when
+two cubes are adjacent, a side is blocked on both of them. Then we subtract that
+number from the total number of sides, which is the amount of cubes times 6.
+
+#+begin_src fsharp
+let solve1 (input: string list) =
+    let blockedSides =
+        input
+        |> List.map parseLine
+        |> List.pairs
+        |> Seq.countWhere (fun (p1, p2) -> isConnected p1 p2)
+
+    List.length input * 6 - blockedSides * 2
+#+end_src
+
+* Part 2
+Summary: The small 1x1x1 cubes form a bigger shape (a lava droplet) with some
+empty space within. How many sides are exposed on the /outside/ of the shape.
+
+Read the full problem statement [[https://adventofcode.com/2022/day/18#part2][here]] (only if you solved part 1).
+
+To figure out how many sides are exposed on the outside of the shape we can use
+a [[https://en.wikipedia.org/wiki/Flood_fill][flood fill algorithm]]. What that does is look at all nodes in a graph that are
+reachable from a starting point.
+
+If we draw an imaginary larger cube around our shape then we can flood fill that
+box and every time a 1x1x1 cube blocks our passage we've seen a side that is
+exposed on the outside.
+
+We'll start by putting all the points of the lava droplet in a ~Set~. We'll
+offset them by 1 on each axis so that our surrounding cube can start at ~(0, 0,
+0)~.
+
+#+begin_src fsharp
+let lava =
+    input |> List.map parseLine
+    |> List.map (fun (x, y, z) -> PackedPoint.make (x + 1) (y + 1) (z + 1))
+    |> Set.ofSeq
+#+end_src
+
+To determine the neighbours of any point we'll just hardcode a list with
+adjacent points. To determine which ones are in our cube we /could/ look at our
+set and determine the max coordinates, but we can also take a sneak peak at our
+input and see that it's smaller than 25x25x25. Then we just hardcode that.
+
+#+begin_src fsharp
+let neighbours (x, y, z) = [
+    (x + 1, y, z); (x - 1, y, z);
+    (x, y + 1, z); (x, y - 1, z);
+    (x, y, z + 1); (x, y, z - 1);
+]
+
+let neighboursInRange point =
+    point |> neighbours
+    |> List.filter (fun (x, y, z) ->
+        0 <= x && x < 25 && 0 < y && y < 25 && 0 < z && z < 25)
+#+end_src
+
+With that we can write our flood fill. When we look at a cell, we check it's
+neighbours. Cells that are not part of the lava droplet and that we haven't
+/flooded/ yet are ~air~ cells. Each part of the lava droplet that's a neighbour
+of the current point, is a side on the surface of that droplet and so we need to
+count it.
+
+Then we ~fold~ over the ~air~ cubes, recursively calling our ~loop~ in order to
+check the rest of our box. Any cells we look at are added to ~seen~ so that we
+don't look at them twice.
+
+#+begin_src fsharp
+let floodFill start =
+    let seen = HashSet.empty |> HashSet.add start
+    let rec loop at cellsSeen lavaSeenCount =
+        let neighbours = neighboursInRange at
+        let air = neighbours |> List.reject (fun pt -> HashSet.contains pt lava)
+        let lavaCount = List.length neighbours - List.length air
+
+        let (lavaSeenAtNeighbours, cellsSeenAtNeighbours) =
+            List.fold (fun (lavaSeenCount, cellsSeen) nextCell ->
+                if HashSet.contains nextCell cellsSeen then (lavaSeenCount, cellsSeen)
+                else loop nextCell <| HashSet.add nextCell cellsSeen <| lavaSeenCount) (lavaSeenCount + lavaCount, cellsSeen) air
+
+        (lavaSeenAtNeighbours, cellsSeenAtNeighbours)
+    loop start seen 0
+#+end_src
+
+We then call it using ~(0, 0, 0)~ as the starting point to find the solution.
+
+#+begin_src fsharp
+floodFill (0, 0, 0) |> fst
+#+end_src
+
+* Improvements
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using ~for~-loops and mutation and then refactor the
+mutation away, changing the ~for~-loop into a ~fold~ or a ~scan~.
+
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something /new/ then it will still end up in this section.
+
+* Reflection
+After the last two days, today's problem was a breath of fresh air. A nice and
+easy problem, simple to code up and far fewer details to keep in my head than
+the two days before. Not too bad for a sunday.
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day18.fs][GitHub]].
