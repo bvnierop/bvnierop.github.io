@@ -7,18 +7,20 @@
   (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/") t)
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
   (package-refresh-contents))
-(dolist (pkg '(htmlize dash fsharp-mode))
+(dolist (pkg '(htmlize dash s fsharp-mode))
   (unless (package-installed-p pkg)
     (package-install pkg)))
 
 (require 'ox-publish)
+
+(require 's)
 
 
 ;;;;;;;;;;;;;;;;;;;;
 ;; Custom export back-end that removes index.html from links
 (defun bvn/blog-html-link (link contents info)
   (let ((html-link (org-html-link link contents info)))
-    (string-replace "/index.html\">" "\">" html-link)))
+    (s-replace "/index.html\">" "\">" html-link)))
 
 (org-export-define-derived-backend 'bvn/blog-html 'html
   :translate-alist '((link . bvn/blog-html-link)))

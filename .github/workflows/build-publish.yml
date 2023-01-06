@@ -12,7 +12,7 @@ jobs:
       with:
         fetch-depth: 1
     - name: build
-      uses: docker://silex/emacs:28.1-alpine
+      uses: docker://iquiw/alpine-emacs
       if: github.event.deleted == false
       with:
         args: ./build.sh
