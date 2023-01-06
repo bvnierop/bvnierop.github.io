@@ -13,6 +13,24 @@
 
 (require 'ox-publish)
 
+
+;;;;;;;;;;;;;;;;;;;;
+;; Custom export back-end that removes index.html from links
+(defun bvn/blog-html-link (link contents info)
+  (let ((html-link (org-html-link link contents info)))
+    (string-replace "/index.html\">" "\">" html-link)))
+
+(org-export-define-derived-backend 'bvn/blog-html 'html
+  :translate-alist '((link . bvn/blog-html-link)))
+
+(defun bvn/blog-html-publish-to-blog-html (plist filename pub-dir)
+  (org-publish-org-to 'bvn/blog-html filename
+		      (concat (when (> (length org-html-extension) 0) ".")
+			      (or (plist-get plist :html-extension)
+				  org-html-extension
+				  "html"))
+		      plist pub-dir))
+
 ;;;;;;;;;;;;;;;;;;;;
 (defun bvn/read-metadata-from-org-file (filename tag)
   "Reads metadata from org file FILENAME, specifically the value of TAG"
@@ -37,7 +55,7 @@
   (let ((project (cons 'blog plist)))
     (plist-put plist :subtitle
                (format-time-string "%b %d, %Y" (org-publish-find-date filename project)))
-    (org-html-publish-to-html plist filename pub-dir)))
+    (bvn/blog-html-publish-to-blog-html plist filename pub-dir)))
 
 (defun bvn/publish-last-posts-sitemap (title sitemap)
   "Filter sitemap entries to be the last 5 posts"
@@ -146,7 +164,7 @@
              :publishing-directory "./publish"
              :recursive t
 
-             :publishing-function 'org-html-publish-to-html
+             :publishing-function 'bvn/blog-html-publish-to-blog-html
 
              :section-numbers nil
              :with-toc nil
