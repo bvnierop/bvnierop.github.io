@@ -1,8 +1,12 @@
 #+title: Home
 
-Hi, I'm Bart. I'm a lifelong learner, problem solver and tinkerer. Oh... and I
-also develop software occasionally. This page deserves a better text, but I
-don't have one yet.
+Hi, I'm Bart. I started programming at age 11 with nothing but QuickBASIC and
+the help file. Since then I've dabbled in C, C++, C#, Java, Objective-C, Swift,
+Ruby, Python, Javascript, OCaml, Common Lisp, Elixir, Racket and F#.
+
+I've competed in ICPC contests. I love to gather and share knowledge and always
+wants to talk to anyone who wants to listen. He is always exploring new ways to
+improve software development practices and the resulting software solutions.
 
 * Posts
 #+INCLUDE: posts/last-posts.org
