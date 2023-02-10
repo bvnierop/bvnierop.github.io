@@ -5,7 +5,7 @@ the help file. Since then I've dabbled in C, C++, C#, Java, Objective-C, Swift,
 Ruby, Python, Javascript, OCaml, Common Lisp, Elixir, Racket and F#.
 
 I've competed in ICPC contests. I love to gather and share knowledge and always
-wants to talk to anyone who wants to listen. He is always exploring new ways to
+wants to talk to anyone who wants to listen. I am always exploring new ways to
 improve software development practices and the resulting software solutions.
 
 * Posts
