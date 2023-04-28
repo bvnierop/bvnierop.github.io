@@ -1,0 +1,299 @@
+#+title: Advent Of Code 2022 - Day 19: Not Enough Minerals
+#+date: [2022-12-19 Mon]
+#+filetags: fsharp advent-of-code
+
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for [[https://adventofcode.com/2022][Advent of Code]]. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+
+* Day 19: Not Enough Minerals
+Summary: An ore robot requires ore to build and mines 1 ore per minute. A clay
+robot requires ore and mines 1 clay per minute. An obsidian robot requires ore
+and clay to build and mines 1 obsidian per minute. Finally, a geode cracking
+robot requires ore and obsidian to build and cracks 1 geode per minute.
+
+A /blueprint/ is a configuration of resource requirements for each robot. The
+/quality level/ of a blueprint is the /ID/ of the blueprint multiplied by the
+/maximum number of geodes that can be cracked in 24 minutes using that
+blueprint/.
+
+You start with a single ore robot. Building a robot costs one minute. You can
+build one robot at a time. What is the sum of the /quality levels/ of all
+/blueprints/ in the input?
+
+Example input:
+
+#+begin_src txt
+Blueprint 1: Each ore robot costs 4 ore. Each clay robot costs 2 ore. Each obsidian robot costs 3 ore and 14 clay. Each geode robot costs 2 ore and 7 obsidian.
+Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsidian robot costs 3 ore and 8 clay. Each geode robot costs 3 ore and 12 obsidian.
+#+end_src
+
+Read the full problem statement [[https://adventofcode.com/2022/day/19][here]].
+
+#+begin_src txt
+Blueprint 1:
+  Each ore robot costs 4 ore.
+  Each clay robot costs 2 ore.
+  Each obsidian robot costs 3 ore and 14 clay.
+  Each geode robot costs 2 ore and 7 obsidian.
+#+end_src
+
+In order to figure out what the maximum number of geodes that can be cracked in
+24 minutes is, we need to try every possible combination of robots that we can
+be build in that time. This includes sometimes /not building a robot/ because it
+may be better to build a more expensive robot.
+
+Unfortunately, given the constraints of the problem this gives us 5^{24}
+possibilities in the worst case, or ~59.604.644.775.390.625~. This is too
+much. So we need to be smart about it and prune the search space a bit.
+
+We can only build one robot per minute. Because of this, the largest number of
+robots we will have to build for a resource type is the maximum cost of any
+robot for that resource type. For the first blueprint in the example, that would
+be a maximum of 4 ore robots, 14 clay robots and 7 obsidian robots.
+
+Another, perhaps less obvious, improvement is that it's only worthwhile to skip
+building a robot in this minute, if we make a different robot /that we could not
+afford before/ as the next robot.
+
+This is hard to implement if we search on a per-minute basis. It becomes much
+easier if we search based on the next choice of robot. We then execute that
+choice as soon as we can.
+
+For this problem we'll use some F# records to make the code more readable. So
+far in Advent of Code we've mostly used tuples, but in this case that becomes a
+mess quickly.
+
+#+begin_src fsharp
+type Blueprint =
+    { Id: int
+      OreRobotCost: int
+      ClayRobotCost: int
+      ObsidianRobotCost: (int * int)
+      GeodeRobotCost: (int * int) }
+
+type RobotCounts =
+    { OreRobots: int
+      ClayRobots: int
+      ObsidianRobots: int
+      GeodeRobots: int }
+
+type Inventory =
+    { Ore: int
+      Clay: int
+      Obsidian: int
+      Geodes: int }
+#+end_src
+
+~Blueprint~ holds the blueprint information, including the costs of each
+robot. ~RobotCounts~ is a count of the robots we have in the simulation and
+~Inventory~ is the amount of resources we have.
+
+We'll add some helpers for creating robots. I'll only show one, but the others
+are the same.
+
+#+begin_src fsharp
+let spawnClayRobot blueprint robots inventory =
+    if blueprint.ClayRobotCost <= inventory.Ore then
+         Some ({ robots with ClayRobots = robots.ClayRobots + 1 },
+         { inventory with Ore = inventory.Ore - blueprint.ClayRobotCost })
+    else None
+#+end_src
+
+The helper checks if we have enough resources and if it does it will return an
+updated ~RobotCounts~ and ~Inventory~. Otherwise it will return ~None~,
+indicating that spawning has failed.
+
+We'll also need a function that updates our inventory based on the robots that
+we have.
+
+#+begin_src fsharp
+let updateInventory robotCounts inventory =
+    { inventory with
+        Ore = inventory.Ore + robotCounts.OreRobots
+        Clay = inventory.Clay + robotCounts.ClayRobots
+        Obsidian = inventory.Obsidian + robotCounts.ObsidianRobots
+        Geodes = inventory.Geodes + robotCounts.GeodeRobots }
+#+end_src
+
+Now we can start writing the code for the simulation. In order to make the next
+choice we need to determine which choices we still have. [[https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/sequences][Sequence expressions]]
+make this incredibly readable.
+
+#+begin_src fsharp
+let simulate blueprint minutes =
+    let generateChoices robots = [
+        if robots.ObsidianRobots > 0 then spawnGeodeRobot
+        if robots.ClayRobots > 0 && robots.ObsidianRobots < maxObsidian blueprint then spawnObsidianRobot
+        if robots.ClayRobots < maxClay blueprint then spawnClayRobot
+        if robots.OreRobots < maxOre blueprint then spawnOreRobot
+    ]
+
+    // ...
+#+end_src
+
+Our search still works on a per minute basis. It takes the minute (~t~), the
+state in the form of an ~inventory~ and ~robots~, and ~nextRobot~ to create. If
+we reach the final minute then we return the amount of geodes we've gathered.
+
+#+begin_src fsharp
+    let rec loop t inventory robots nextRobot bestSoFar =
+        if t = minutes then inventory.Geodes
+
+        // ...
+#+end_src
+
+If it's /not/ the last minute, then if we have not made a choice then we will
+create the possible choices. Then we'll attempt to continue with each possible
+choice, taking the best result.
+
+#+begin_src fsharp
+            match nextRobot with
+            | None ->
+                generateChoices robots
+                |> List.map (fun spawner -> loop t inventory robots (Some spawner))
+                |> List.max
+
+            // ...
+#+end_src
+
+If we /did/ make a choice then we'll try to spawn the robot. If that fails
+because we don't have enough resources then we continue with the next minute,
+after adding the harvest of the minute to our inventory.
+
+If spawning the robot succeeds then we continue to the next minute with both the
+minute's harvest and the new robot.
+
+#+begin_src fsharp
+                | Some spawner ->
+                    match spawner blueprint robots inventory with
+                    | None -> loop <| t + 1 <| updateInventory robots inventory <| robots <| Some spawner
+                    | Some (robotsIncludingNew, inventory) -> loop <| t + 1 <| updateInventory robots inventory <| robotsIncludingNew <| None
+    loop 0 emptyInventory initialRobotCounts None
+#+end_src
+
+With that in place, we can parse the input, map each blueprint to its /quality
+level/ and finally sum the result.
+
+#+begin_src fsharp
+let solve1 (input: string List) =
+    input |> List.map parseLine
+    |> List.map (fun bp -> simulate bp 24 * bp.Id)
+    |> List.sum
+#+end_src
+
+* Part 2
+Summary: For the first /three/ blueprints of the input, find the largest number
+of geodes that can be cracked in /32/ minutes and multiply them together.
+
+Read the full problem statement [[https://adventofcode.com/2022/day/19#part2][here]] (only if you solved part 1).
+
+In 32 minutes of simulation there are a /lot/ more possibilities, but the number
+of blueprints is a lot smaller. With our optimizations from part 1 finding the
+solution for part 2 takes about 10 minutes.
+
+We can do better.
+
+We can reduce the search space even further by eliminating options that are
+worst than the best one we've seen so far, before we reach minute 32.
+
+To do that we need to determine what the absolute best is we can do starting
+from the current minute. We could be picky about our current income, but it
+turns out that that's not necessary.
+
+The absolute best we can do is to create a geode robot every minute starting
+right now. We'll ignore the fact that we may not be able to afford that.
+
+|--------+----------------------+--------------------|
+| minute | max new geode robots | max geodes cracked |
+|--------+----------------------+--------------------|
+|     32 |                    0 | 0                  |
+|     31 |                    1 | 1                  |
+|     30 |                    2 | 2 + 1              |
+|     29 |                    3 | 3 + 2 + 1          |
+|     28 |                    4 | 4 + 3 + 2 + 1      |
+|--------+----------------------+--------------------|
+
+In the final minute we can start building a robot but it will never be finished,
+so the maximum new number of robots is ~0~. In the minute before that we can
+build a robot. It will be finished for the final minute and crack one geode. In
+minute 30 we can build one more robot, which will crack two geodes resulting in
+a total of ~3~.
+
+Generalized we can say that we can build as many robots as there are minutes
+remaining. The amount of geodes they can crack is ~1 + 2 + ... + n~. This is a
+[[https://en.wikipedia.org/wiki/Triangular_number][triangular number]]. The formula to calculate a triangular number is ~n * (n+1) /
+2~.
+
+The absolute best we can do is this number, plus the amount of geodes we can
+crack with the number of geode robots we already have.
+
+#+begin_src fsharp
+let bestPossible t inventory robots =
+    let remainingMinutes = minutes - t - 1
+    let maxExtraGeodes = (remainingMinutes * (remainingMinutes + 1)) / 2
+    (remainingMinutes + 1) * robots.GeodeRobots + maxExtraGeodes + inventory.Geodes
+#+end_src
+
+We can then update our ~loop~ function to first check if it's still possible to
+beat the best we've seen so far. If we can't then we will immediately abort this
+branch.
+
+#+begin_src fsharp
+let rec loop t inventory robots nextRobot bestSoFar =
+    if t = minutes then max bestSoFar inventory.Geodes
+    else
+        if bestPossible t inventory robots < bestSoFar then bestSoFar
+        else
+            match nextRobot with
+            | None ->
+                generateChoices robots
+                |> List.scan (fun bestSoFar spawner -> loop t inventory robots (Some spawner) bestSoFar) bestSoFar
+                |> List.max
+            | Some spawner ->
+                match spawner blueprint robots inventory with
+                | None -> loop <| t + 1 <| updateInventory robots inventory <| robots <| Some spawner <| bestSoFar
+                | Some (robotsIncludingNew, inventory) -> loop <| t + 1 <| updateInventory robots inventory <| robotsIncludingNew <| None <| bestSoFar
+loop 0 emptyInventory initialRobotCounts None -1
+#+end_src
+
+Solving part 2 then becomes taking the first three blueprints, get the best
+result for each of them and multiply the results. Because we're calculating much
+fewer blueprints it even runs slightly faster than part 1 with additional
+optimization.
+
+#+begin_src fsharp
+let solve2 (input: string list) =
+    input |> List.map parseLine
+    |> List.take (min <| List.length input <| 3)
+    |> List.map (fun bp -> simulate bp 32)
+    |> List.reduce (*)
+#+end_src
+
+* Improvements
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using ~for~-loops and mutation and then refactor the
+mutation away, changing the ~for~-loop into a ~fold~ or a ~scan~.
+
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something /new/ then it will still end up in this section.
+
+* Reflection
+I kind of shot myself in my own foot this day. I realized quickly that the
+problem was easily solvable by simulating and pruning the search tree. I
+thought, however, to have some fun and solve the problem with randomization
+instead. The idea was to run 100k or so simulations with completely randomized
+choices. This turned out to lead to the correct results, but the runtime was
+significantly worse than I had anticipated and it took a lot more tweaking to
+get right. In the end, the deterministic version was easier to write and
+performed a lot better than the randomized solution.
+
+The full code for the day is on [[https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day19.fs][GitHub]].
