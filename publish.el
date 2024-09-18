@@ -67,6 +67,9 @@
             (org-list-to-org (cons (car sitemap) list)))))
 
 (defun bvn/sitemap-format-entry (folder)
+  "Creates a function that formats an entry to the sitemap.
+   ~FOLDER~ is the subfolder where the sitemap should be generated,
+   ie \"posts\" or \"talks\""
   (lexical-let ((f folder))
     (lambda (entry style project)
       (unless (bvn/post-draft? (concat "site/" f "/" entry))
