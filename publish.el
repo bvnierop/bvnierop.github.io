@@ -72,7 +72,13 @@
             (format-time-string "%Y-%m-%d" (org-publish-find-date entry project))
             entry
             (org-publish-find-title entry project))))
-  
+
+(defun bvn/talks-sitemap-format-entry (entry style project)
+  (unless (bvn/post-draft? (concat "site/talks/" entry))
+    (format "%s ..... [[file:%s][%s]]"
+            (format-time-string "%Y-%m-%d" (org-publish-find-date entry project))
+            entry
+            (org-publish-find-title entry project))))
 
 ;; html 5
 (setq org-html-doctype "html5"
@@ -158,11 +164,51 @@
              :sitemap-format-entry 'bvn/sitemap-format-entry
              :sitemap-sort-files 'anti-chronologically)
 
+       (list "talks"									;; name of the project
+             :base-directory "./working-copy/talks"				;; directory to take files from
+             :base-extension "org"						;; only take files with this extension
+             :publishing-directory "./publish/talks"	;; output directory
+             :recursive t								;; parse recursively, otherwise only index.org would be parsed
+             :publishing-function 'bvn/publish-post-to-html ;; publish as html
+
+             :section-numbers nil
+             :with-toc nil
+
+             :html-preamble t
+             :html-preamble-format (format-pre/postamble "preamble.html")
+             :html-postamble t
+             :html-postamble-format (format-pre/postamble "postamble.html")
+
+             :auto-sitemap t
+             :sitemap-filename "last-talks.org"
+             :sitemap-function 'bvn/publish-last-posts-sitemap
+             :sitemap-format-entry 'bvn/talks-sitemap-format-entry
+             :sitemap-style 'list
+             :sitemap-title " "
+             :sitemap-sort-files 'anti-chronologically)
+
+       (list "talks-index"
+             :base-directory "./working-copy/talks"
+             :base-extension "org"
+             :exclude (regexp-opt '("last-talks.org"))
+             :publishing-directory "./publish/talks"
+             :recursive t
+
+             :publishing-function 'ignore
+
+             :auto-sitemap t
+             :sitemap-filename "index.org"
+             :sitemap-style 'list
+             :sitemap-title "Talks archive"
+             :sitemap-function 'bvn/publish-last-posts-sitemap
+             :sitemap-format-entry 'bvn/talks-sitemap-format-entry
+             :sitemap-sort-files 'anti-chronologically)
+
        (list "pages"
              :base-directory "./working-copy"
              :base-extension ""
              :exclude (regexp-opt '(".*"))
-             :include '("index.org" "posts/index.org")
+             :include '("index.org" "posts/index.org" "talks/index.org")
              :publishing-directory "./publish"
              :recursive t
 
@@ -184,7 +230,7 @@
              :recursive t
 
              :publishing-function 'org-publish-attachment)
-       (list "website" :components (list "working-copy" "posts" "posts-index" "pages" "assets"))))
+       (list "website" :components (list "working-copy" "posts" "posts-index" "talks" "talks-index" "pages" "assets"))))
 
 (org-publish-remove-all-timestamps)
 (org-publish "website" t)

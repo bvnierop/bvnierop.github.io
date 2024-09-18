@@ -1,0 +1,6 @@
+#+title: GenAI In Action
+#+date: [2024-09-18 Wed]
+#+filetags: ai
+
+This is a placeholder page for my talk GenAI In Action: Real-World Applications.
+It will act as a landing page for more information and resources.
