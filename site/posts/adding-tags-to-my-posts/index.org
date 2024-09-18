@@ -2,7 +2,7 @@
 #+date: [2021-06-09 +0100]
 #+filetags: jekyll
 
-In [[file:../how-i-learned-to-let-go-and-ship-it/index.org]][how I learned to let go and ship it]I wrote that I still needed to add
+In [[file:../how-i-learned-to-let-go-and-ship-it/index.org][How I learned to let go and ship it]] I wrote that I still needed to add
 categories, or tags, to posts. This post details how I've done that.
 
 * Categories or tags
