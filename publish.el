@@ -12,8 +12,8 @@
     (package-install pkg)))
 
 (require 'ox-publish)
-
 (require 's)
+(require 'cl) ; for lexical-let
 
 
 ;;;;;;;;;;;;;;;;;;;;
@@ -66,19 +66,14 @@
     (concat (format "#+TITLE: %s\n\n" title)
             (org-list-to-org (cons (car sitemap) list)))))
 
-(defun bvn/sitemap-format-entry (entry style project)
-  (unless (bvn/post-draft? (concat "site/posts/" entry))
-    (format "%s ..... [[file:%s][%s]]"
-            (format-time-string "%Y-%m-%d" (org-publish-find-date entry project))
-            entry
-            (org-publish-find-title entry project))))
-
-(defun bvn/talks-sitemap-format-entry (entry style project)
-  (unless (bvn/post-draft? (concat "site/talks/" entry))
-    (format "%s ..... [[file:%s][%s]]"
-            (format-time-string "%Y-%m-%d" (org-publish-find-date entry project))
-            entry
-            (org-publish-find-title entry project))))
+(defun bvn/sitemap-format-entry (folder)
+  (lexical-let ((f folder))
+    (lambda (entry style project)
+      (unless (bvn/post-draft? (concat "site/" f "/" entry))
+        (format "%s ..... [[file:%s][%s]]"
+                (format-time-string "%Y-%m-%d" (org-publish-find-date entry project))
+                entry
+                (org-publish-find-title entry project))))))
 
 ;; html 5
 (setq org-html-doctype "html5"
@@ -142,7 +137,7 @@
              :auto-sitemap t
              :sitemap-filename "last-posts.org"
              :sitemap-function 'bvn/publish-last-posts-sitemap
-             :sitemap-format-entry 'bvn/sitemap-format-entry
+             :sitemap-format-entry (bvn/sitemap-format-entry "posts")
              :sitemap-style 'list
              :sitemap-title " "
              :sitemap-sort-files 'anti-chronologically)
@@ -161,7 +156,7 @@
              :sitemap-style 'list
              :sitemap-title "Posts archive"
              :sitemap-function 'bvn/publish-last-posts-sitemap
-             :sitemap-format-entry 'bvn/sitemap-format-entry
+             :sitemap-format-entry (bvn/sitemap-format-entry "posts")
              :sitemap-sort-files 'anti-chronologically)
 
        (list "talks"									;; name of the project
@@ -182,7 +177,7 @@
              :auto-sitemap t
              :sitemap-filename "last-talks.org"
              :sitemap-function 'bvn/publish-last-posts-sitemap
-             :sitemap-format-entry 'bvn/talks-sitemap-format-entry
+             :sitemap-format-entry (bvn/sitemap-format-entry "talks")
              :sitemap-style 'list
              :sitemap-title " "
              :sitemap-sort-files 'anti-chronologically)
@@ -201,7 +196,7 @@
              :sitemap-style 'list
              :sitemap-title "Talks archive"
              :sitemap-function 'bvn/publish-last-posts-sitemap
-             :sitemap-format-entry 'bvn/talks-sitemap-format-entry
+             :sitemap-format-entry (bvn/sitemap-format-entry "talks")
              :sitemap-sort-files 'anti-chronologically)
 
        (list "pages"
