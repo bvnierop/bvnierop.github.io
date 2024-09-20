@@ -4,3 +4,12 @@
 
 This is a placeholder page for my talk GenAI In Action: Real-World Applications.
 It will act as a landing page for more information and resources.
+
+* Demo application
+Find the demo application on [[https://github.com/bvnierop/ai-notes][GitHub]].
+
+* Sheets
+<TODO>
+
+* Notes
+<TODO>
