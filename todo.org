@@ -1,6 +1,19 @@
 #+TODO: TODO(t) DOING(n) | DONE(d)
 
 * Technical
+** TODO Run deploy on a cron job
+Nightly at 5 pm? Needed for the killer feature where I want to be able to set a
+release date in the future and not publish future posts.
+
+** TODO Don't publish posts with a date in the future
+This way, if something is no longer a draft, but I don't want to release it yet,
+I can! It's a way to set up a sort of schedule.
+
+Which reminds me...
+
+*** TODO Filter posts by DRAFT state AND date
+*** TODO Write script to generate release schedule
+
 ** TODO Fork dependencies
 ** TODO Self-host css [#C]
 I kind of want to replace the footer with just a copyright notice.
@@ -46,6 +59,7 @@ This prevents a datetime to be added
 ** DONE Improve blog base page [#A]
 ** DONE Add more links to sidebar [#A]
 * Posts
+** TODO Cursor AI
 ** TODO GZipStream use
 ** TODO Base64UrlEncoding caveat
 ** TODO Something about Racket
