@@ -117,15 +117,15 @@
        (list "working-copy"
              :publishing-function 'org-publish-attachment
              :base-directory "./site"
-             :publishing-directory "./working-copy"
+             :publishing-directory "./.working-copy"
              :recursive t
              :include '("CNAME")
              :base-extension ".*")
              
        (list "posts"									;; name of the project
-             :base-directory "./working-copy/posts"				;; directory to take files from
+             :base-directory "./.working-copy/posts"				;; directory to take files from
              :base-extension "org"						;; only take files with this extension
-             :publishing-directory "./publish/posts"	;; output directory
+             :publishing-directory "./.publish/posts"	;; output directory
              :recursive t								;; parse recursively, otherwise only index.org would be parsed
              :publishing-function 'bvn/publish-post-to-html ;; publish as html
 
@@ -146,10 +146,10 @@
              :sitemap-sort-files 'anti-chronologically)
 
        (list "posts-index"
-             :base-directory "./working-copy/posts"
+             :base-directory "./.working-copy/posts"
              :base-extension "org"
              :exclude (regexp-opt '("last-posts.org"))
-             :publishing-directory "./publish/posts"
+             :publishing-directory "./.publish/posts"
              :recursive t
 
              :publishing-function 'ignore
@@ -163,9 +163,9 @@
              :sitemap-sort-files 'anti-chronologically)
 
        (list "talks"									;; name of the project
-             :base-directory "./working-copy/talks"				;; directory to take files from
+             :base-directory "./.working-copy/talks"				;; directory to take files from
              :base-extension "org"						;; only take files with this extension
-             :publishing-directory "./publish/talks"	;; output directory
+             :publishing-directory "./.publish/talks"	;; output directory
              :recursive t								;; parse recursively, otherwise only index.org would be parsed
              :publishing-function 'bvn/publish-post-to-html ;; publish as html
 
@@ -186,10 +186,10 @@
              :sitemap-sort-files 'anti-chronologically)
 
        (list "talks-index"
-             :base-directory "./working-copy/talks"
+             :base-directory "./.working-copy/talks"
              :base-extension "org"
              :exclude (regexp-opt '("last-talks.org"))
-             :publishing-directory "./publish/talks"
+             :publishing-directory "./.publish/talks"
              :recursive t
 
              :publishing-function 'ignore
@@ -203,11 +203,11 @@
              :sitemap-sort-files 'anti-chronologically)
 
        (list "pages"
-             :base-directory "./working-copy"
+             :base-directory "./.working-copy"
              :base-extension ""
              :exclude (regexp-opt '(".*"))
              :include '("index.org" "posts/index.org" "talks/index.org")
-             :publishing-directory "./publish"
+             :publishing-directory "./.publish"
              :recursive t
 
              :publishing-function 'bvn/blog-html-publish-to-blog-html
@@ -221,10 +221,10 @@
              :html-postamble-format (format-pre/postamble "postamble.html"))
 
        (list "assets"
-             :base-directory "./working-copy"
+             :base-directory "./.working-copy"
              :base-extension "css\\|png\\|jpg"
              :include '("CNAME" "robots.txt")
-             :publishing-directory "./publish"
+             :publishing-directory "./.publish"
              :recursive t
 
              :publishing-function 'org-publish-attachment)
