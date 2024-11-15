@@ -48,17 +48,10 @@
 (defun bvn/post-draft? (filename)
   (bvn/read-metadata-from-org-file filename "DRAFT"))
 
-(defun bvn/parse-org-date-string (date-string)
-  "Parse an org date string in format [YYYY-MM-DD Day] to a time value"
-  (when date-string
-    (let ((date-match (string-match "\\[\\([0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}\\)" date-string)))
-      (when date-match
-        (date-to-time (match-string 1 date-string))))))
-
 (defun bvn/post-future? (filename target-date)
   "Check if post in FILENAME has a publish date after TARGET-DATE"
   (let* ((date-string (bvn/read-metadata-from-org-file filename "DATE"))
-         (post-date (bvn/parse-org-date-string date-string)))
+         (post-date (org-time-string-to-time date-string)))
     (when post-date
       (time-less-p target-date post-date))))
 
