@@ -48,6 +48,24 @@
 (defun bvn/post-draft? (filename)
   (bvn/read-metadata-from-org-file filename "DRAFT"))
 
+(defun bvn/parse-org-date-string (date-string)
+  "Parse an org date string in format [YYYY-MM-DD Day] to a time value"
+  (when date-string
+    (let ((date-match (string-match "\\[\\([0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}\\)" date-string)))
+      (when date-match
+        (date-to-time (match-string 1 date-string))))))
+
+(defun bvn/post-future? (filename target-date)
+  "Check if post in FILENAME has a publish date after TARGET-DATE"
+  (let* ((date-string (bvn/read-metadata-from-org-file filename "DATE"))
+         (post-date (bvn/parse-org-date-string date-string)))
+    (when post-date
+      (time-less-p target-date post-date))))
+
+(defun bvn/post-published? (filename)
+  "Check if post in FILENAME should be published based on current date"
+  (not (bvn/post-future? filename (current-time))))
+
 (defun format-pre/postamble (filename)
   (list (list "en" (with-temp-buffer
                      (insert-file-contents (expand-file-name (format "%s" filename) "./snippets"))
@@ -72,11 +90,13 @@
    ie \"posts\" or \"talks\""
   (lexical-let ((f folder))
     (lambda (entry style project)
-      (unless (bvn/post-draft? (concat "site/" f "/" entry))
-        (format "%s ..... [[file:%s][%s]]"
-                (format-time-string "%Y-%m-%d" (org-publish-find-date entry project))
-                entry
-                (org-publish-find-title entry project))))))
+      (let ((file-path (concat "site/" f "/" entry)))
+        (when (and (not (bvn/post-draft? file-path))
+                   (bvn/post-published? file-path))
+          (format "%s ..... [[file:%s][%s]]"
+                  (format-time-string "%Y-%m-%d" (org-publish-find-date entry project))
+                  entry
+                  (org-publish-find-title entry project)))))))
 
 ;; html 5
 (setq org-html-doctype "html5"
