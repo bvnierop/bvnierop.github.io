@@ -1,2 +1,4 @@
 .working-copy/
 .publish/
+.aider*
+.env
