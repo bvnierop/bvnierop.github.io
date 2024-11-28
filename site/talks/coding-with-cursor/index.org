@@ -1,0 +1,12 @@
+#+title: Coding With Cursor
+#+date: [2024-11-28 Thu]
+#+filetags: ai
+
+This is a placeholder page for my talk Coding With Cursor
+It will act as a landing page for more information and resources.
+
+* Sheets
+<TODO>
+
+* Notes
+<TODO>
