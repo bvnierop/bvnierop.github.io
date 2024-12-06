@@ -235,7 +235,7 @@
 
        (list "assets"
              :base-directory "./.working-copy"
-             :base-extension "css\\|png\\|jpg"
+             :base-extension "css\\|png\\|jpg\\|pdf"
              :include '("CNAME" "robots.txt")
              :publishing-directory "./.publish"
              :recursive t

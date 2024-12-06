@@ -2,14 +2,48 @@
 #+date: [2024-09-18 Wed]
 #+filetags: ai
 
-This is a placeholder page for my talk GenAI In Action: Real-World Applications.
-It will act as a landing page for more information and resources.
+On September 20th 2024 I gave the talk GenAI In Action: Real-World Applications.
+The goal of the talk is to show applications using GenAI solutions that go
+beyond the chat bot, although they may still be based on Large Language Models.
+
+The talk weaves theory with demos. Every demo it supposed to run locally. On a
+laptop. Because I have a peculiar setup, not all of the models use the GPU.
+Still, all demos ran reasonably fast.
 
 * Demo application
+The demo application is a simple TODO-app supercharged with a number of
+AI-powered features. Specifically, these features are OCR, audio/video
+transcription, semantic search of notes, images and audio/video, summarizing
+notes and extracting actions from notes.
+
 Find the demo application on [[https://github.com/bvnierop/ai-notes][GitHub]].
 
-* Sheets
-<TODO>
+** OCR
+In the first demo we use [[https://github.com/JaidedAI/EasyOCR][EasyOCR]] to scan the text in an image. As a bonus, and
+this has little to do with AI, we overlay the text on the image so that it can
+be selected, copied, etc.
 
-* Notes
-<TODO>
+** Transcribe A/V
+[[https://github.com/openai/whisper][Whisper]] by OpenAI is a great audio transcribing model, but has as a downside
+that it can only take 30 seconds of audio as input. Silero VAD can scan an audio
+file for parts with sound and divide it into chunks, that we can then feed to
+Whisper.
+
+** Semantic Search
+In order to enable semantic search, including in the videos, we use [[https://github.com/facebookresearch/faiss][faiss]], an
+open source similarity search library, as an in-memory vector database. [[https://github.com/microsoft/unilm/tree/master/minilm][MiniLM]]
+is used for vector encoding our notes as well as the search query.
+
+** Summary
+For summarizing I wanted to use something like ~phi3~, but couldn't get that to
+recognize my GPU which made it unbearably slow.
+
+I ended up using [[https://huggingface.co/facebook/bart-large-cnn][bart-large-cnn]], which is a finetuned vversion of [[https://huggingface.co/facebook/bart-large][bart-large]],
+trained on CNN Daily Mail, which is a huge set of ~(text, summary)~ pairs.
+
+** Generate Actions
+Similarly for scanning our notes for actions I ended up using a ~bart~ model.
+This time I used [[https://huggingface.co/facebook/bart-large-mnli][bart-large-mnli]], which is strong in natural language inference.
+
+* Sheets
+[[file:2024-09-20-rs-valley-gen-ai-in-action-sheets.pdf][GenAI In Action at Rockstars Valley]]
