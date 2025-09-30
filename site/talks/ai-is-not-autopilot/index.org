@@ -3,4 +3,4 @@
 #+filetags: ai
 
 This is a placeholder site for my talk /AI ≠ Autopilot: Crafting Maintainable
-Code with Machine Teammates/
+Code with Machine Teammates/.
