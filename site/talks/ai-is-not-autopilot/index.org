@@ -1,0 +1,6 @@
+#+title: AI ≠ Autopilot
+#+date: [2025-09-30 Tue]
+#+filetags: ai
+
+This is a placeholder site for my talk /AI ≠ Autopilot: Crafting Maintainable
+Code with Machine Teammates/
