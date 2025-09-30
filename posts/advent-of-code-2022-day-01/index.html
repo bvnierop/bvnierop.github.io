@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 01</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 01</h1>
+<p class="subtitle">Dec 01, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-org1e8f22f" class="outline-2">
+<h2 id="org1e8f22f">Day 01: Calorie Counting</h2>
+<div class="outline-text-2" id="text-org1e8f22f">
+<p>
+Summary: Given a list of groups of numbers, each number on a new line and each
+group separated by an empty line, give the largest sum.
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">100
+200
+
+400
+
+500
+300
+
+</pre>
+</div>
+
+<p>
+Find the full description <a href="https://adventofcode.com/2022/day/1">here</a>.
+</p>
+
+<p>
+Day 1 is often straight forward. Nice and easy to get in the groove. This year
+that's no different. Summing a list of numbers isn't very difficult, nor is
+finding a maxium value. Given the groups, that would look something like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">groups</span> = [[100; 200]; [400]; [500; 300]]
+groups
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.map Seq.sum
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.max
+</pre>
+</div>
+
+<p>
+Getting the groups turned out to be trickier than I'd liked, which has something
+to do with the way I tend to set up my working environment for Advent of
+Code. Experience teaches me that, 9 out of 10 times, I want to parse <i>lines</i>
+rather than the raw input. So I've abstracted that away. The signature of my
+<code>solve</code> functions look like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">solve: <span class="org-type">input:</span> (string list) -&gt; 'a
+</pre>
+</div>
+
+<p>
+Most languages I've used so far for Advent of Code, F# included, do not have a
+built-in function to split a list of things based on a predicate. String
+splitting does usually exist. The straightforward way to get the groups
+therefore would have been:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-comment-delimiter">// </span><span class="org-comment">assume input is a newline separated string
+</span><span class="org-comment-delimiter">// </span><span class="org-comment">like described in the problem statement
+</span>input.Split(<span class="org-string">"\n\n"</span>)
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.map (<span class="org-keyword">fun</span> <span class="org-variable-name">s</span> -&gt; s.Split(<span class="org-string">"\n"</span>))
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.map (Seq.map Int32.Parse)
+</pre>
+</div>
+
+<p>
+Instead I ended up stealing a <code>splitBy</code> function and using that, resulting in
+the final solution for part one:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">splitBy</span> <span class="org-variable-name">fn</span> <span class="org-variable-name">seq</span> =
+    <span class="org-keyword">let</span> <span class="org-variable-name">i</span> = ref 0
+    seq
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.groupBy (<span class="org-keyword">fun</span> <span class="org-variable-name">e</span> -&gt;
+        <span class="org-keyword">if</span> fn e <span class="org-keyword">then</span> incr i
+        !i)
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.map snd
+
+<span class="org-keyword">let</span> <span class="org-function-name">caloriesPerElf</span> <span class="org-variable-name">input</span> = 
+    input
+    <span class="org-fsharp-ui-operator">|&gt;</span> splitBy ((=) <span class="org-string">""</span>)
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.map (Seq.filter ((&lt;&gt;) <span class="org-string">""</span>))
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.map (Seq.map Int32.Parse)
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.map Seq.sum
+
+<span class="org-keyword">let</span> <span class="org-function-name">solve1</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    input
+    <span class="org-fsharp-ui-operator">|&gt;</span> caloriesPerElf
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.max
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgdd68f73" class="outline-2">
+<h2 id="orgdd68f73">Part 2</h2>
+<div class="outline-text-2" id="text-orgdd68f73">
+<p>
+Part two asks us to, instead of finding the maximum sum, to find the sum of the
+three maximum sums. So instead of taking the maximum, we order the list of sums
+(largest first), take the first three elements and take the sum of that.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve2</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+          input
+    <span class="org-fsharp-ui-operator">|&gt;</span> caloriesPerElf
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.orderByDescending
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.take 3
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.sum
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgb8085b2" class="outline-2">
+<h2 id="orgb8085b2">Improvements</h2>
+<div class="outline-text-2" id="text-orgb8085b2">
+<p>
+There are some things that can be improved here.
+</p>
+</div>
+
+<div id="outline-container-org7594698" class="outline-3">
+<h3 id="org7594698">splitBy</h3>
+<div class="outline-text-3" id="text-org7594698">
+<p>
+Both <code>incr</code> and <code>!</code> turn out to be <a href="https://github.com/fsharp/fslang-design/blob/main/FSharp-6.0/FS-1111-refcell-op-information-messages.md">deprecated</a>. Also, the function keeps the
+element that's being used as a separator. Finally, it would be much nicer if
+<code>splitBy</code> would be part of the <code>Seq</code> module.
+</p>
+
+<p>
+We can do all that and make it nice and reusable.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Seq</span>
+
+<span class="org-keyword">let</span> <span class="org-function-name">splitOn</span> <span class="org-variable-name">predicate</span> <span class="org-variable-name">source</span> =
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">i</span> = 0
+    source
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.groupBy (<span class="org-keyword">fun</span> <span class="org-variable-name">e</span> -&gt;
+        <span class="org-keyword">if</span> predicate e <span class="org-keyword">then</span> i &lt;- i + 1
+        i)
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.map snd
+
+<span class="org-keyword">let</span> <span class="org-function-name">reject</span> <span class="org-variable-name">predicate</span> <span class="org-variable-name">source</span> = Seq.filter (predicate &gt;&gt; <span class="org-keyword">not</span>) source
+
+<span class="org-keyword">let</span> <span class="org-function-name">splitOnExclusive</span> <span class="org-variable-name">predicate</span> <span class="org-variable-name">source</span> =
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">i</span> = 0
+    source
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.groupBy (<span class="org-keyword">fun</span> <span class="org-variable-name">e</span> -&gt;
+        <span class="org-keyword">if</span> predicate e <span class="org-keyword">then</span>
+            i &lt;- i + 1
+            -1
+        <span class="org-keyword">else</span>
+            i)
+    <span class="org-fsharp-ui-operator">|&gt;</span> reject (<span class="org-keyword">fun</span> (<span class="org-variable-name">idx</span>, <span class="org-variable-name">_</span>) -&gt; idx = -1)
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.map snd
+</pre>
+</div>
+
+<p>
+<code>caloriesPerElf</code> then also looks a lot nicer.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">caloriesPerElf</span> <span class="org-variable-name">input</span> = 
+    input
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.splitOnExclusive ((=) <span class="org-string">""</span>)
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.map (Seq.map Int32.Parse)
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.map Seq.sum
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgb356a9b" class="outline-3">
+<h3 id="orgb356a9b">Input</h3>
+<div class="outline-text-3" id="text-orgb356a9b">
+<p>
+Another improvement is to determine wether to pass a list of lines or the raw
+string input to the solver based on the signature of the solver function. But
+that is an exercise for another time.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgcbe2465" class="outline-2">
+<h2 id="orgcbe2465">Reflection</h2>
+<div class="outline-text-2" id="text-orgcbe2465">
+<p>
+When looking at other people's solutions after submitting my own, I realised
+that I never even considered building the list of lists in a more imperative
+way. Even though that comes more natural to me and F# has full support for
+it. Whether that's a good thing or not, is up for debate.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

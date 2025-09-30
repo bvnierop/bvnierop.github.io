@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 10: Cathode-Ray Tube</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 10: Cathode-Ray Tube</h1>
+<p class="subtitle">Dec 10, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-orgaf4e912" class="outline-2">
+<h2 id="orgaf4e912">Day 10: Cathode-Ray Tube</h2>
+<div class="outline-text-2" id="text-orgaf4e912">
+<p>
+Summary: Given a list of CPU instructions, simulate the execution of these
+instructions.
+</p>
+
+<p>
+There are two different instructions:
+</p>
+
+<ul class="org-ul">
+<li><code>noop</code> takes <code>1</code> cpu cycle and does nothing.</li>
+<li><code>addx V</code> takes <code>2</code> cpu cycles and <i>after both cycles</i> changes the value of the
+CPU's only register, <code>X</code>, by <code>V</code>. <code>V</code> can be negative.</li>
+</ul>
+
+<p>
+The <i>signal strength</i> is the value of <code>X</code> multiplied by the cycle number. What
+is the sum of the signal strength <i>during</i> the 20th, 60th, 100th, 140th, 180th
+and 220th CPU cycle?
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">noop
+addx 3
+addx -5
+</pre>
+</div>
+
+<p>
+Read the full description <a href="https://adventofcode.com/2022/day/10">here</a>.
+</p>
+
+<p>
+Parsing the input, we're not actually interested in the commands. Rather, the
+only thing that matters is by how much <code>X</code> changes. In case of <code>noop</code>, <code>X</code>
+changes by 0. In case of <code>addx V</code>, <code>X</code> changes by <code>V</code> after the second cycle.
+</p>
+
+<p>
+We can model this as a sequence of numbers.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">expandCommand</span> <span class="org-variable-name">cmd</span> =
+    <span class="org-keyword">match</span> cmd <span class="org-fsharp-ui-operator">|&gt;</span> String.split <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"noop"</span>|] -&gt; seq { <span class="org-keyword">yield</span> 0 }
+    <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"addx"</span>; n|] -&gt;
+        seq {
+            <span class="org-keyword">yield</span> 0
+            <span class="org-keyword">yield</span> Int32.parse n
+        }
+    <span class="org-fsharp-ui-operator">|</span> _ -&gt; failwith $<span class="org-string">"Invalid command: {cmd}"</span>
+</pre>
+</div>
+
+<p>
+We can then combine each tiny sequence into a large and calculate the value of
+<code>X</code> for every cycle. Note that since we're interested in the value of <code>X</code>
+<i>during</i> the cycle, we have to keep the <i>initial</i> value of <code>X</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">xValues</span> <span class="org-variable-name">input</span> =
+    input <span class="org-fsharp-ui-operator">|&gt;</span> Seq.map expandCommand
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.concat
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.scan (+) 1
+</pre>
+</div>
+
+<p>
+Given this list of x-values, we need to get the signal strength <i>during</i> the
+20th cycle and every 40 cycles after that. We could index the sequence of
+x-values and check the modulo, but the input is small, so we don't have to.
+</p>
+
+<p>
+Instead, we can just look up the items at the expected indices. If the input
+would have been large, we could have converted the sequence to an array instead
+for faster lookup.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">[20;60;100;140;180;220]
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.map (<span class="org-keyword">fun</span> <span class="org-variable-name">n</span> -&gt; n * Seq.item (n - 1) xValues)
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.sum
+</pre>
+</div>
+
+<p>
+We have to get the <code>nth</code> item - 1 because, of course, our sequence is
+0-indexed. To get the <i>signal strength</i> we have to mulitply the value of <code>X</code> by
+the cycle number.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgf60186b" class="outline-2">
+<h2 id="orgf60186b">Part 2</h2>
+<div class="outline-text-2" id="text-orgf60186b">
+<p>
+Summary: The <code>X</code> register controls the horizontal position of a sprite. The
+sprite is three pixels wide and the <code>X</code> register sets the horizontal position of
+the <i>middle</i> of the sprite.
+</p>
+
+<p>
+The screen has 6 rows of 40 pixels each. One pixel is drawn on every CPU cycle,
+in order. So the top left pixel is drawn during the first cycle, while the
+bottom right pixel is drawn during the 240th cycle.
+</p>
+
+<p>
+A <i>lit</i> pixel (<code>#</code>) is drawn when the sprite overlaps with the horizontal location of
+the pixel being drawn. Otherwise the pixel remains <i>dark</i> (<code>.</code>).
+</p>
+
+<p>
+Which eight capital letters are displayed after the program runs to completion?
+</p>
+
+<p>
+We can represent the display as an array of 240 characters, all dark at
+first. To update the display at a given cycle we need the cycle number and the
+value of the <code>X</code> register <i>during that cycle</i>.
+</p>
+
+<p>
+The index in the display array is <code>cycle % 240</code>. The index of the sprite is the
+value of the <code>X</code> register and the index in the row is <code>cycle % 40</code>.
+</p>
+
+<p>
+If the index in the row overlaps with the sprite we draw a <code>#</code>, otherwise a <code>.</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">display</span> = Array.create 240 <span class="org-string">'.'</span>
+<span class="org-keyword">let</span> <span class="org-function-name">update</span> <span class="org-variable-name">display</span> (<span class="org-variable-name">cycle</span>, <span class="org-variable-name">x</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">displayIndex</span> = cycle % 240
+    <span class="org-keyword">let</span> <span class="org-variable-name">spriteIndex</span> = x
+    <span class="org-keyword">let</span> <span class="org-variable-name">lineIndex</span> = cycle % 40
+    <span class="org-keyword">if</span> lineIndex &gt;= spriteIndex - 1 &amp;&amp; lineIndex &lt;= spriteIndex + 1 <span class="org-keyword">then</span>
+        Array.updateAt displayIndex <span class="org-string">'#'</span> display
+    <span class="org-keyword">else</span>
+        Array.updateAt displayIndex <span class="org-string">'.'</span> display
+</pre>
+</div>
+
+<p>
+Because updating the screen requires the previous update, we use <code>scan</code> to call
+<code>update</code> for every value of X. We use <code>indexed</code> to get cycle numbers.
+</p>
+
+<p>
+We're only interested in the <code>last</code> display state. We can then take that array,
+split it into 6 rows and convert it to a newline separated string.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">xValues <span class="org-fsharp-ui-operator">|&gt;</span> Seq.indexed
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.scan update display
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.last
+<span class="org-fsharp-ui-operator">|&gt;</span> Array.splitInto 6
+<span class="org-fsharp-ui-operator">|&gt;</span> Array.map String.Concat
+<span class="org-fsharp-ui-operator">|&gt;</span> String.joinSeq Environment.NewLine
+</pre>
+</div>
+
+<p>
+Then all that remains is to read the output.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">###..#..#.#....#..#...##..##..####..##..
+#..#.#..#.#....#..#....#.#..#....#.#..#.
+#..#.####.#....####....#.#......#..#..#.
+###..#..#.#....#..#....#.#.##..#...####.
+#....#..#.#....#..#.#..#.#..#.#....#..#.
+#....#..#.####.#..#..##...###.####.#..#.
+</pre>
+</div>
+
+<p>
+One more detail needs to be adressed. Because we are only interested in the
+value of the <code>X</code> register <i>during a cycle</i>, the last element in our sequence of
+x-values is not relevant. It's the value of <code>X</code> <i>after</i> the last cycle. In my
+input it did not matter for the output, but for the test input it does.
+</p>
+
+<p>
+There's no cheap way to drop the last value of a sequence, but since the
+sequence of x-values is small, we can do it the expensive way:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">butLast</span> <span class="org-variable-name">source</span> =
+    Seq.take (Seq.length source - 1) source
+</pre>
+</div>
+
+<p>
+Our updated <code>xValues</code> then looks like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">xValues</span> <span class="org-variable-name">input</span> =
+    input <span class="org-fsharp-ui-operator">|&gt;</span> Seq.map expandCommand
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.concat
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.scan (+) 1
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.butLast
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgf6f8099" class="outline-2">
+<h2 id="orgf6f8099">Improvements</h2>
+<div class="outline-text-2" id="text-orgf6f8099">
+<p>
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using <code>for</code>-loops and mutation and then refactor the
+mutation away, changing the <code>for</code>-loop into a <code>fold</code> or a <code>scan</code>.
+</p>
+
+<p>
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+</p>
+
+<p>
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something <i>new</i> then it will still end up in this section.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgc6673a9" class="outline-2">
+<h2 id="orgc6673a9">Reflection</h2>
+<div class="outline-text-2" id="text-orgc6673a9">
+<p>
+An early interpreter problem today. I kind of like these. In part one I
+struggled with dealing with the fact that what matters is the value of the <code>X</code>
+register <i>during a CPU cycle</i>, not <i>after</i>.
+</p>
+
+<p>
+When I had that out of the way, part 2 really was pretty straight forward.
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day10.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

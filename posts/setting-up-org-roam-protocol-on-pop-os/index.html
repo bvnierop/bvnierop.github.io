@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setting up org-roam-protocol on Pop!_OS</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Setting up org-roam-protocol on Pop!_OS</h1>
+<p class="subtitle">Apr 02, 2021</p>
+</header><p>
+A few weeks ago I started using <a href="https://github.com/org-roam/org-roam">org-roam</a> for my note taking. Besides being a
+system for note taking, it also comes with a workflow. One idea is to take notes
+of things you read, as (or just after) you read them.
+</p>
+
+<p>
+Already on the first day this turned out to be annoying. In order to create
+<i>any</i> note on an article, even just to store it away for future reading,
+required too many steps:
+</p>
+
+<ol class="org-ol">
+<li>Create a new roam-note</li>
+<li>Copy/paste or type the title</li>
+<li>Add on the second line the tag <code>#+roam_key</code></li>
+<li>Copy/paste or type the url</li>
+<li>Start typing notes</li>
+</ol>
+
+<p>
+This is quite a threshold and it was stopping me from using the system as
+intended, so a solution had to be found. Thankfully <code>org-roam</code> extends
+<a href="https://orgmode.org/worg/org-contrib/org-protocol.html">org-protocol</a> which exists just for this use case.
+</p>
+
+<p>
+This post details how I set this up on my Pop!_OS system.
+</p>
+
+<div id="outline-container-orgdb4b7ff" class="outline-2">
+<h2 id="orgdb4b7ff">Enabling org-protocol</h2>
+<div class="outline-text-2" id="text-orgdb4b7ff">
+<p>
+Since <a href="https://www.orgroam.com/manual.html#Roam-Protocol">org-roam-protocol</a> depends on <code>org-protocol</code>, that must first be
+enabled. In your config, after loading <code>org</code>, add <code>(require 'org-protocol)</code>.
+</p>
+
+<p>
+<code>org-roam-protocol</code> extends <code>org-protocol</code> and needs to be loaded as well. After
+loading <code>org-roam</code>, add <code>(require 'org-roam-protocol)</code>.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgc376ed1" class="outline-2">
+<h2 id="orgc376ed1">Deskop application</h2>
+<div class="outline-text-2" id="text-orgc376ed1">
+<p>
+Next we need to create a desktop application for <code>emacsclient</code>. This is
+different for various platforms. On Pop!_OS, create a file called
+<code>~/local/share/applications/org-protocol.desktop</code> with the following contents:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-conf">[<span class="org-type">Desktop Entry</span>]
+<span class="org-variable-name">Name</span>=Org-Protocol
+<span class="org-variable-name">Exec</span>=emacsclient -a <span class="org-string">""</span> -c -s <span class="org-string">"org-protocol"</span> %u
+<span class="org-variable-name">Icon</span>=emacs-icon
+<span class="org-variable-name">Type</span>=Application
+<span class="org-variable-name">Terminal</span>=false
+<span class="org-variable-name">MimeType</span>=x-scheme-handler/org-protocol
+</pre>
+</div>
+
+<p>
+We're passing some arguments to <code>emacsclient</code>:
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">argument</th>
+<th scope="col" class="org-left">what it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>-a ""</code></td>
+<td class="org-left">-a with an empty string starts a new Emacs daemon if there isn't any.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>-c</code></td>
+<td class="org-left">Create a new frame.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>-s "org-protocol"</code></td>
+<td class="org-left">Names the socket for the daemon. This ensures that the daemon is for org-protocol only.</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+We can technically start the daemon at boot time, but I have not really found
+that necessary.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org87b6710" class="outline-2">
+<h2 id="org87b6710">Associate the protocol</h2>
+<div class="outline-text-2" id="text-org87b6710">
+<p>
+Then we need to associate the desktop application with <code>org-protocol://</code>
+links. On Pop!_OS we do this with <code>xdg-mime</code>. <code>xdg-mime</code> is a command line tool
+for querying information about file type handling and adding descriptions for
+new file types.
+</p>
+
+<p>
+The command that matters looks like this:
+</p>
+<div class="org-src-container">
+<pre class="src src-bash">xdg-mime default application mimetype(s)
+</pre>
+</div>
+
+<p>
+Filling in the blanks results in the snippet below:
+</p>
+<div class="org-src-container">
+<pre class="src src-bash">xdg-mime default org-protocol.desktop x-scheme-handler/org-protocol
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org27cb685" class="outline-2">
+<h2 id="org27cb685">Putting it together</h2>
+<div class="outline-text-2" id="text-org27cb685">
+<p>
+In order to use this, add the following bookmarklet to your browser (Firefox in
+my case):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-javascript">javascript:location.href =
+    <span class="org-string">'org-protocol://roam-ref?template=r&amp;ref='</span>
+    + encodeURIComponent(location.href)
+    + <span class="org-string">'&amp;title='</span>
+    + encodeURIComponent(document.title)
+    + <span class="org-string">'&amp;body='</span>
+    + encodeURIComponent(window.getSelection().toString())
+</pre>
+</div>
+
+<p>
+And then it, mostly, works.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org12a23e7" class="outline-2">
+<h2 id="org12a23e7">Finishing touches</h2>
+<div class="outline-text-2" id="text-org12a23e7">
+<p>
+In a past post I wrote about <a href="2021-03-26-how-i-learned-to-let-go-and-ship-it.html">how I learned to let go and ship it</a>. There are some
+things about this solution that aren't entirely the way I'd want them to
+be. However, this mostly works and significantly lowers the threshold for taking
+notes on articles online. So I'll solve the minor issues later.
+</p>
+</div>
+
+<div id="outline-container-orgb2003d3" class="outline-3">
+<h3 id="orgb2003d3">Browser popups</h3>
+<div class="outline-text-3" id="text-orgb2003d3">
+<p>
+Browser integration is a bit annoying. There's a per-domain popup to ask to
+allow <code>org-protocol://</code> links. This exists because it's easy to abuse trust in
+external protocols.
+</p>
+
+<p>
+For now I can continue by pressing <code>Alt+O</code>. This is acceptable. For websites
+that I end up using a lot I can allow <code>org-protocol://</code> links for that domain.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org1cb6b75" class="outline-3">
+<h3 id="org1cb6b75">Body</h3>
+<div class="outline-text-3" id="text-org1cb6b75">
+<p>
+The bookmarklet contains code to capture selected text. This doesn't end up in
+the capture template. Since the goal is to write a note in my own words, that
+isn't a big issue.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org7d1adc5" class="outline-3">
+<h3 id="org7d1adc5">File name</h3>
+<div class="outline-text-3" id="text-org7d1adc5">
+<p>
+In <code>org-roam</code> I don't care about the name of the file in which a note is
+taken. At all. To reflect that, all my notes have a purely numeric file
+name. I'd like to add that to notes captured with <code>org-roam-protocol</code> as well.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org5019e3f" class="outline-3">
+<h3 id="org5019e3f">Split window</h3>
+<div class="outline-text-3" id="text-org5019e3f">
+<p>
+Unfortunately <code>org-capture</code>, which is used to capture <code>org-protocol://</code> links,
+has its own ideas on window management. This idea is to split the frame into two
+windows, one of which contains the capture buffer. In this particular workflow
+I'd like the capture buffer to occupy the full frame, as it's the only thing I
+use the frame for.
+</p>
+
+<p>
+However, <code>org-capture</code> bypasses <code>display-buffer</code> and therefore also
+<code>display-buffer-alist</code>, making this hard to configure.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org18ec635" class="outline-3">
+<h3 id="org18ec635">Closing the application</h3>
+<div class="outline-text-3" id="text-org18ec635">
+<p>
+The idea of this workflow is that I activate the bookmarklet, type a few things,
+file the note and then close Emacs again. So I'd like to close the desktop
+application after that. For now it's no biggie to do that manually.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org9451a8a" class="outline-3">
+<h3 id="org9451a8a">Closing thoughts</h3>
+<div class="outline-text-3" id="text-org9451a8a">
+<p>
+Since setting this up, the threshold to taking notes of things I read as I read
+them has become low enough that I now do it all the time. There's still some
+setup to be done, and I'll be sure to write about my solutions as I find them.
+</p>
+</div>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

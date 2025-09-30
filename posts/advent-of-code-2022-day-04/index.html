@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 04</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 04</h1>
+<p class="subtitle">Dec 04, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-org8791eb3" class="outline-2">
+<h2 id="org8791eb3">Day 03: Camp Cleanup</h2>
+<div class="outline-text-2" id="text-org8791eb3">
+<p>
+Summary: In a list where each line has two ranges, count for how many lines the
+ranges are completely overlapping
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">2-9,5-6
+1-2,3-4
+</pre>
+</div>
+
+<p>
+Find the full description <a href="https://adventofcode.com/2022/day/4">here</a>.
+</p>
+
+<p>
+Another problem that can be solved with sets today. The numbers may be larger
+than the single digits examples, but not so large that using sets becomes
+prohibitive. Checking range overlap isn't that difficult though, so I wrote my
+own solution.
+</p>
+
+<p>
+A range overlaps another range completely if the lowest value of that range is
+equal to or lower than the lowest value of the other range, and the highest
+value is higher than or equal to the highest value of the other range.
+</p>
+
+<p>
+If we represent the range as a pair of integers, here's what that looks like:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">isFullyOverlapping</span> <span class="org-variable-name">range1</span> <span class="org-variable-name">range2</span> =
+    <span class="org-keyword">match</span> (range1, range2) <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> ((l1, h1), (l2, h2)) <span class="org-keyword">when</span> l1 &lt;= l2 &amp;&amp; h1 &gt;= h2 -&gt; <span class="org-keyword">true</span>
+    <span class="org-fsharp-ui-operator">|</span> ((l1, h1), (l2, h2)) <span class="org-keyword">when</span> l2 &lt;= l1 &amp;&amp; h2 &gt;= h1 -&gt; <span class="org-keyword">true</span>
+    <span class="org-fsharp-ui-operator">|</span> _ -&gt; <span class="org-keyword">false</span>
+</pre>
+</div>
+
+<p>
+Then we can simply count the lines for which this is true.
+</p>
+
+<p>
+Parsing the ranges may seem a bit daunting, as there's a lot of fluff in the
+input. Thinking for a
+</p>
+
+<p>
+Parsing the ranges may seem a bit daunting, as there's a lot of fluff in the
+input. This happens in many Advent of Code of problems. My personal preference
+for parsing such input would be something that behaves like C's <code>scanf</code> (without
+its issues). F# doesn't have that. For now, though, we can just split the line
+on the two fluff characters and convert the result to integers.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">parse</span> (<span class="org-variable-name">line</span>: <span class="org-type">string</span>) =
+    <span class="org-keyword">match</span> line.Split([|<span class="org-string">','</span>;<span class="org-string">'-'</span>|]) <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> [|a;b;c;d|] -&gt; ((Int32.Parse(a), Int32.Parse(b)),
+                      (Int32.Parse(c), Int32.Parse(d)))
+    <span class="org-fsharp-ui-operator">|</span> _ -&gt; failwith $<span class="org-string">"Invalid input: {line}"</span>
+</pre>
+</div>
+
+<p>
+Combining this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve1</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    input
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map parse
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.filter (<span class="org-keyword">fun</span> (<span class="org-variable-name">r1</span>, <span class="org-variable-name">r2</span>) -&gt; isFullyOverlapping r1 r2)
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.length
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orgb98637e" class="outline-2">
+<h2 id="orgb98637e">Part 2</h2>
+<div class="outline-text-2" id="text-orgb98637e">
+<p>
+Summary: For part two we are asked to <i>also</i> count pairs of ranges that
+partially overlap.
+</p>
+
+<p>
+This is precisely the same as part 1 except for the function that determines
+overlap. Determine a partial overlap is a bit more complex than determining a
+full overlap.
+</p>
+
+<p>
+Two ranges overlap if one range begins or ends in the other. In code, here's how
+that looks:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">isPartlyOverlapping</span> <span class="org-variable-name">range1</span> <span class="org-variable-name">range2</span> = 
+    <span class="org-keyword">match</span> (range1, range2) <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> ((l1, h1), (l2, h2)) <span class="org-keyword">when</span> l1 &lt;= l2 &amp;&amp; l2 &lt;= h1 -&gt; <span class="org-keyword">true</span> <span class="org-comment-delimiter">// </span><span class="org-comment">range2 begins in range1
+</span>    <span class="org-fsharp-ui-operator">|</span> ((l1, h1), (l2, h2)) <span class="org-keyword">when</span> l1 &lt;= h2 &amp;&amp; h2 &lt;= h1 -&gt; <span class="org-keyword">true</span> <span class="org-comment-delimiter">// </span><span class="org-comment">range2 ends in range1
+</span>    <span class="org-fsharp-ui-operator">|</span> ((l1, h1), (l2, h2)) <span class="org-keyword">when</span> l2 &lt;= l1 &amp;&amp; l1 &lt;= h2 -&gt; <span class="org-keyword">true</span> <span class="org-comment-delimiter">// </span><span class="org-comment">range1 begins in range2
+</span>    <span class="org-fsharp-ui-operator">|</span> ((l1, h1), (l2, h2)) <span class="org-keyword">when</span> l2 &lt;= h1 &amp;&amp; h1 &lt;= h2 -&gt; <span class="org-keyword">true</span> <span class="org-comment-delimiter">// </span><span class="org-comment">range1 ends in range2
+</span>    <span class="org-fsharp-ui-operator">|</span> _ -&gt; <span class="org-keyword">false</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org2e17380" class="outline-2">
+<h2 id="org2e17380">Improvements</h2>
+<div class="outline-text-2" id="text-org2e17380">
+<p>
+Part two becomes easier once we realize that we can also look for pairs of
+ranges that have <i>no overlap at all</i> and negate that condition.
+</p>
+
+<p>
+Two ranges have no overlap at all if the highest value of range <code>a</code> is lower
+than the lowest value of range <code>b</code>, or vice versa.
+</p>
+
+<p>
+Feeling like there must be a better way than writing all those <code>List.map</code>'s, I
+grouped a few of them a single function.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">isDisjoint</span> <span class="org-variable-name">range1</span> <span class="org-variable-name">range2</span> =
+    <span class="org-keyword">match</span> (range1, range2) <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> ((l1, h1), (l2, h2)) <span class="org-keyword">when</span> h2 &lt; l1 -&gt; <span class="org-keyword">true</span>
+    <span class="org-fsharp-ui-operator">|</span> ((l1, h1), (l2, h2)) <span class="org-keyword">when</span> h1 &lt; l2 -&gt; <span class="org-keyword">true</span>
+    <span class="org-fsharp-ui-operator">|</span> _ -&gt; <span class="org-keyword">false</span>
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org1e8add4" class="outline-3">
+<h3 id="org1e8add4">List.countWhere</h3>
+<div class="outline-text-3" id="text-org1e8add4">
+<p>
+Many Advent of Code problems require in one way or another to count for how many
+elements in a list, a condition is true.
+</p>
+
+<p>
+So far I've implemented this as <code>List.filter condition |&gt; List.length</code>, but
+doing this every time becomes cumbersome. So I created a tiny library function,
+<code>countWhere</code>, which combines the two.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">countWhere</span> <span class="org-variable-name">predicate</span> = List.filter predicate &gt;&gt; List.length
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgd8a8a10" class="outline-2">
+<h2 id="orgd8a8a10">Reflection</h2>
+<div class="outline-text-2" id="text-orgd8a8a10">
+<p>
+The problem today wasn't very difficult, but I didn't really like the parsing
+part. This is something I run into almost every year. The languages I've picked
+make parsing more cumbersome than I'd like. Sure, regular expressions and back
+references  are more robust than <code>scanf</code>, but (to me) Advent of Code is not
+about writing a robust parser, it's about solving the problems.
+</p>
+
+<p>
+I had sort of decided to look into using a parser generator to parse today, but
+I could not find the motivation to do so. Better luck next time!
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

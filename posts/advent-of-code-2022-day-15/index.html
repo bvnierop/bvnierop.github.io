@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 15: Beacon Exclusion Zone</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 15: Beacon Exclusion Zone</h1>
+<p class="subtitle">Dec 15, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-org40cccf0" class="outline-2">
+<h2 id="org40cccf0">Day 15: Beacon Exclusion Zone</h2>
+<div class="outline-text-2" id="text-org40cccf0">
+<p>
+Summary: Given is a list of sensors and a beacon that is closest to the sensor,
+in integer 2D coordinates. Sensors can only lock on to the beacon closest to
+them as measured by the Manhattan distance.
+</p>
+
+<p>
+On row <code>y=2000000</code>, how many <code>x</code>-positions cannot possibly contain a beacon?
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">Sensor at x=2, y=18: closest beacon is at x=-2, y=15
+Sensor at x=9, y=16: closest beacon is at x=10, y=16
+Sensor at x=13, y=2: closest beacon is at x=15, y=3
+Sensor at x=12, y=14: closest beacon is at x=10, y=16
+Sensor at x=10, y=20: closest beacon is at x=10, y=16
+Sensor at x=14, y=17: closest beacon is at x=10, y=16
+Sensor at x=8, y=7: closest beacon is at x=2, y=10
+Sensor at x=2, y=0: closest beacon is at x=2, y=10
+Sensor at x=0, y=11: closest beacon is at x=2, y=10
+Sensor at x=20, y=14: closest beacon is at x=25, y=17
+Sensor at x=17, y=20: closest beacon is at x=21, y=22
+Sensor at x=16, y=7: closest beacon is at x=15, y=3
+Sensor at x=14, y=3: closest beacon is at x=15, y=3
+Sensor at x=20, y=1: closest beacon is at x=15, y=3
+</pre>
+</div>
+
+<p>
+For the sample input, take <code>y=10</code> instead.
+</p>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/15">here</a>.
+</p>
+
+<p>
+A tile cannot contain a beacon if it's inside the range of any sensor, <i>unless</i>
+it already contains a beacon. That is because if there was a beacon inside the
+range of a sensor, the range of that sensor would be smaller and another beacon
+would fall outside the range.
+</p>
+
+<p>
+Given the constaints of the problem statement we have to fear that part two is
+going to ask us to find the same number for many rows, say between <code>0</code> and
+<code>200000</code>. So we have to be smarter than just counting every single <code>x</code> position.
+</p>
+
+<p>
+Instead we can define the range for all sensors at a given X position, in the
+form <code>(firstX, lastX)</code>, where the range will <i>include</i> <code>lastX</code>. We can
+then merge those ranges and find their lengths. Two ranges can be merged if they
+either overlap or are adjacent to each other.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">mergeable</span> (<span class="org-variable-name">start1</span>, <span class="org-variable-name">finish1</span>) (<span class="org-variable-name">start2</span>, <span class="org-variable-name">finish2</span>) =
+    (<span class="org-keyword">not</span> <span class="org-fsharp-ui-operator">&lt;|</span> isDisjoint (start1, finish1) (start2, finish2))
+    || start2 - finish1 = 1
+</pre>
+</div>
+
+<p>
+Two ranges overlap if they are not disjoint. Two ranges are disjoint if one
+range's largest <code>x</code> is smaller than the other's smallest <code>x</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">isDisjoint</span> <span class="org-variable-name">range</span> <span class="org-variable-name">range2</span> =
+    <span class="org-keyword">match</span> (range1, range2) <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> ((l1, h1), (l2, h2)) <span class="org-keyword">when</span> h2 &lt; l1 -&gt; <span class="org-keyword">true</span>
+    <span class="org-fsharp-ui-operator">|</span> ((l1, h1), (l2, h2)) <span class="org-keyword">when</span> h1 &lt; l2 -&gt; <span class="org-keyword">true</span>
+    <span class="org-fsharp-ui-operator">|</span> _ -&gt; <span class="org-keyword">false</span>
+</pre>
+</div>
+
+<p>
+In order to merge two ranges we simply take the smallest <code>x</code> and the largest <code>x</code>
+between them.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">merge</span> (<span class="org-variable-name">s1</span>, <span class="org-variable-name">e1</span>) (<span class="org-variable-name">s2</span>, <span class="org-variable-name">e2</span>) = ((min s1 s2), (max e1 e2))
+</pre>
+</div>
+
+<p>
+In order to merge an entire sequence of ranges we first have to sort them. This
+way we can ensure that if we look at two ranges and they aren't mergeable, no
+other range can be merged with the first one. That, in turn, ensures we only
+have to look at each range at most twice.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">compact</span> (<span class="org-variable-name">ranges</span>: (<span class="org-variable-name">int</span> * <span class="org-variable-name">int</span>) <span class="org-variable-name">seq</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">sortedRanges</span> = ranges <span class="org-fsharp-ui-operator">|&gt;</span> Seq.sort
+    Seq.tail sortedRanges
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.fold (<span class="org-keyword">fun</span> (<span class="org-variable-name">head</span>, <span class="org-variable-name">ranges</span>) <span class="org-variable-name">nextRange</span> -&gt;
+        <span class="org-keyword">if</span> mergable head nextRange <span class="org-keyword">then</span> (merge head nextRange, ranges)
+        <span class="org-keyword">else</span> (nextRange, (head :: ranges))) (Seq.head sortedRanges, []) 
+    <span class="org-fsharp-ui-operator">|&gt;</span> (<span class="org-keyword">fun</span> (<span class="org-variable-name">head</span>, <span class="org-variable-name">ranges</span>) -&gt; head :: ranges)
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.rev
+</pre>
+</div>
+</div>
+
+<div id="outline-container-orgbda7833" class="outline-3">
+<h3 id="orgbda7833">Determining the range of a sensor at row <code>y</code></h3>
+<div class="outline-text-3" id="text-orgbda7833">
+<p>
+To determine the range of a sensor at any given row, we must first determine
+it's maximum horizontal or vertical range. Since a sensor can scan no further
+than its closest beacon, that range is the Manhattan distance to said beacon.
+</p>
+
+<p>
+The Manhattan distance between two points is the difference between the <code>x</code>
+coordinates plus the difference between the <code>y</code> coordinates. We take the
+absolute value so that we don't have to check which is the larger one.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">manhattanDistance</span> (<span class="org-variable-name">x1</span>, <span class="org-variable-name">y1</span>) (<span class="org-variable-name">x2</span>, <span class="org-variable-name">y2</span>) = abs (x2 - x1) + abs (y2 - y1)
+</pre>
+</div>
+
+<p>
+If the <code>y</code> we are looking it is farther away from the sensor than the maximum
+distance, the sensor has no coverage on that row at all. If it's at <i>precisely</i>
+the maximum distance, it covers 1 tile: the sensor's <code>x</code> coordinate. For every
+row closer to the sensor, that range extends by 1 tile in both directions.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">rangeForSensorAtRow</span> <span class="org-variable-name">y</span> ((<span class="org-variable-name">sensorX</span>, <span class="org-variable-name">sensorY</span>), <span class="org-variable-name">beacon</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">maxDistance</span> = Point.manhattanDistance (sensorX, sensorY) beacon
+    <span class="org-keyword">let</span> <span class="org-variable-name">distance</span> = abs (sensorY - y)
+    <span class="org-keyword">let</span> <span class="org-variable-name">diff</span> = maxDistance - distance
+    <span class="org-keyword">if</span> diff &lt; 0 <span class="org-keyword">then</span> None
+    <span class="org-keyword">else</span> Some (sensorX - diff, sensorX + diff)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org526afe4" class="outline-3">
+<h3 id="org526afe4">Putting it together</h3>
+<div class="outline-text-3" id="text-org526afe4">
+<p>
+Since the test input requires us to solve for a different <code>y</code> than the real
+input, we take <code>y</code> as an argument.
+</p>
+
+<p>
+We parse our input to a list of <code>(sensorPoint, beaconPoint)</code> called
+<code>sensorInfo</code>. We need to count the beacons at <code>y</code> because while they are in
+sensor range, they don't count towards the spots where a beacon cannot be. After
+all, there's a beacon!
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">beaconsAtY</span> =
+    sensorInfo
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map snd
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.filter (<span class="org-keyword">fun</span> (<span class="org-variable-name">_bx</span>, <span class="org-variable-name">by</span>) -&gt; by = y)
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.distinct <span class="org-fsharp-ui-operator">|&gt;</span> List.length
+</pre>
+</div>
+
+<p>
+Then we take our sensor info, convert it to ranges, select only those sensors
+that have any coverage on the row, collapse the ranges and sum their lengths.
+</p>
+
+<p>
+Finally we subtract the beacons.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve</span> <span class="org-variable-name">y</span> <span class="org-variable-name">input</span> =
+
+    sensorInfo
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (rangeForSensorAtRow y)
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.choose id
+    <span class="org-fsharp-ui-operator">|&gt;</span> Range.compact
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.sumBy Range.length
+    <span class="org-fsharp-ui-operator">|&gt;</span> (<span class="org-keyword">fun</span> <span class="org-variable-name">s</span> -&gt; s - beaconsAtY)
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org92c4268" class="outline-2">
+<h2 id="org92c4268">Part 2</h2>
+<div class="outline-text-2" id="text-org92c4268">
+<p>
+Summary: There is a beacon that is not in range of any of the sensors. It's
+inside the area between <code>0,0</code> and <code>4000000,400000</code>. There exists precisely <i>one</i>
+location where it can be. Determine the beacon's <i>tuning frequency</i>, which is
+the <code>x</code> coordinate multiplied by <code>4000000</code> added to the <code>y</code> coordinate.
+</p>
+
+<p>
+For the test input, look at the area between <code>0,0</code> and <code>20,20</code>.
+</p>
+
+<p>
+As predicted, we need to look at a very large area. Is it too large for our
+setup? That depends on how patient you are.
+</p>
+
+<p>
+With the things we've built so far, we can loop over all rows and for each row
+determine the sensor ranges. Since we're looking for a single tile, all rows
+except the row with that tile, must have one range. The offending row will have
+two ranges.
+</p>
+
+<p>
+If we have the same <code>sensorInfo</code> as before, and a <code>maxY</code> that determines the the
+maximum row, here's how that looks:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">{0..maxY}
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.pick (<span class="org-keyword">fun</span> <span class="org-variable-name">y</span> -&gt;
+    <span class="org-keyword">let</span> <span class="org-variable-name">ranges</span> =
+        sensorInfo <span class="org-fsharp-ui-operator">|&gt;</span> List.map (rangeForSensorAtRow y) <span class="org-fsharp-ui-operator">|&gt;</span> List.choose id
+        <span class="org-fsharp-ui-operator">|&gt;</span> Range.compact
+    <span class="org-keyword">if</span> List.length ranges = 1 <span class="org-keyword">then</span> None
+    <span class="org-keyword">else</span> Some (int64 y + 4000000L * int64 (ranges <span class="org-fsharp-ui-operator">|&gt;</span> List.head <span class="org-fsharp-ui-operator">|&gt;</span> snd <span class="org-fsharp-ui-operator">|&gt;</span> ((+) 1))))
+</pre>
+</div>
+
+<p>
+This has a runtime of about 45 seconds of my machine, which is not very good,
+but it'll do.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgb1a71ef" class="outline-2">
+<h2 id="orgb1a71ef">Improvements</h2>
+<div class="outline-text-2" id="text-orgb1a71ef">
+<p>
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using <code>for</code>-loops and mutation and then refactor the
+mutation away, changing the <code>for</code>-loop into a <code>fold</code> or a <code>scan</code>.
+</p>
+
+<p>
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+</p>
+
+<p>
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something <i>new</i> then it will still end up in this section.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgb5d975a" class="outline-2">
+<h2 id="orgb5d975a">Reflection</h2>
+<div class="outline-text-2" id="text-orgb5d975a">
+<p>
+When reading today's problem statement I feared that part two would be quite
+hard. Given the large numbers I was surprised that it could be brute forced so
+easily. There exists a <i>much</i> better method, but I lack the time to explore and
+understand it.
+</p>
+
+<p>
+At the same time I would have expected my solution to run faster. 4000000 is a
+large number, but given that I only look at the <i>sensors</i>, and that there are
+only 38 of those at my input, I would have expected a faster runtime. There's
+room for improvement there, too.
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day15.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

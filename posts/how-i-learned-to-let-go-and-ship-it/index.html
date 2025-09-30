@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How I Learned To Let Go And Ship It</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">How I Learned To Let Go And Ship It</h1>
+<p class="subtitle">Mar 26, 2021</p>
+</header><p>
+In early February I decided that maybe I should start a Jekyll based website,
+hosted on GitHub Pages. Almost two months later, this is the first <i>real</i> post.
+</p>
+
+<div id="outline-container-orgcef4682" class="outline-2">
+<h2 id="orgcef4682">Humble beginnings</h2>
+<div class="outline-text-2" id="text-orgcef4682">
+<p>
+It starts simple. You think "I know, I'll start a website!" You decide on tech,
+hack together or search for a simple theme and publish. "There!" you think,
+"We're up!"
+</p>
+
+<p>
+This is exactly what I did. The initial one line post is still here. But then it
+begins. There a <i>ton</i> of stuff I still wanted to do. In the end this resulted in
+not doing anything for far too long. Not that I didn't <i>do</i> anything. I did
+plenty. But for a long time nobody could see it but me. And I was not producing
+any content.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgb0f3fda" class="outline-2">
+<h2 id="orgb0f3fda">So much to do</h2>
+<div class="outline-text-2" id="text-orgb0f3fda">
+<p>
+So what did I want to do? I wanted a better theme. I quickly noticed that even
+though it's not hard to set up Jekyll locally, things work different between
+local and GitHub Pages, so I wanted a staging environment.
+</p>
+
+<p>
+I wanted my staging environment to be on a subdomain. But not indexed on
+Google. So I had to get <code>robots.txt</code> working.
+</p>
+
+<p>
+I wanted a workflow that reflected this. A workflow where I'd go from a
+<code>staging</code> repository to a <code>main</code> repository, without affecting the drafts or
+posts.
+</p>
+
+<p>
+Speaking of drafts, I also wanted drafts to not be in a public GitHub
+repository, but still be on GitHub.
+</p>
+
+<p>
+I was, and still am, constantly debating if I want only an apex domain, only a
+<code>www</code> subdomain, or both.
+</p>
+
+<p>
+I wanted to develop locally without 'infecting' my system with Ruby. It's not
+that I have anything agaist Ruby, but I have a million different little projects
+in a million different (versions of) languages. I don't want all these to
+clutter my machines.
+</p>
+
+<p>
+I want analytics. Nothing fancy. Preferably not Google. Really all I want is
+page views. If I were hosting this thing myself then I'd just grep the logs. But
+it's on GitHub Pages, so I'm going to have to go with a Javascript based
+solution.
+</p>
+
+<p>
+I want categories. I want <i>see also</i>. I want series of posts. I want comments. I
+want an RSS feed. Perhaps I should do something about SEO.
+</p>
+
+<p>
+Maybe I want posts in a subdirectory so that it's better for future permalinks.
+</p>
+
+<p>
+And I wanted content. I wanted content ready <i>before</i> going live for real. So
+that I could schedule that.
+</p>
+
+<p>
+That's a lot of things to do while also maintaining a full time job and a
+life. Despite COVID-19, I don't have <i>that</i> much free time. And to be fair, it
+started to look like work instead of fun. And that's how two months pass.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgc950210" class="outline-2">
+<h2 id="orgc950210">So now that all of this is done</h2>
+<div class="outline-text-2" id="text-orgc950210">
+<p>
+It isn't. Not nearly. But we're two months in and I want this thing live. So
+here we go. It's shipped.
+</p>
+
+<p>
+I'm using a remote theme. It's okay if that breaks during development. I can see
+that locally. So I don't need a staging environment or a convoluted workflow.
+</p>
+
+<p>
+I no longer really care about drafts. If there are any and someone sees them,
+then so be it.
+</p>
+
+<p>
+I use <a href="https://nixos.org">Nix</a> to keep my installation clean. I'm not yet sure how happy I am with
+it, but it's interesting to play with nonetheless.
+</p>
+
+<p>
+And now here we are. It's live. There's still plenty of things to do. Now that
+I've shipped, content comes first. And all those other things? They'll
+come. Shipping 10% of the things you want is a lot better than never shipping at
+all.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

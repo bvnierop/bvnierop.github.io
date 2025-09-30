@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 18: Boiling Boulders</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 18: Boiling Boulders</h1>
+<p class="subtitle">Dec 18, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-org601a24b" class="outline-2">
+<h2 id="org601a24b">Day 18: Boiling Boulders</h2>
+<div class="outline-text-2" id="text-org601a24b">
+<p>
+Summary: Given a list of locations of 1x1x1 cubes on a 3D grid, how many sides
+are exposed?
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">2,2,2
+1,2,2
+3,2,2
+2,1,2
+2,3,2
+2,2,1
+2,2,3
+2,2,4
+2,2,6
+1,2,5
+3,2,5
+2,1,5
+2,3,5
+</pre>
+</div>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/18">here</a>.
+</p>
+
+<p>
+After the details and trickiness of the past few days, this is a breath of fresh
+air. Two cubes are adjacent if one coordinate differs by at most one from
+another. If two cubes are adjacent that means that for both of them, one side is
+not exposed. Cubes have six sides. So for the example input, if taken only the
+first two cubes, 10 sides are exposed since they are adjacent.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">isConnected</span> (<span class="org-variable-name">x1</span>, <span class="org-variable-name">y1</span>, <span class="org-variable-name">z1</span>) (<span class="org-variable-name">x2</span>, <span class="org-variable-name">y2</span>, <span class="org-variable-name">z2</span>) =
+    (abs (x1 - x2)) + (abs (y1 - y2)) + (abs (z1 - z2)) = 1
+</pre>
+</div>
+
+<p>
+We'll create a helper to generate all unique pairs in a single list. For each
+element in the list, loop over the remaining elements and return their combination
+as a pair. Then recurse on the remaining elements.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">pairs</span> <span class="org-variable-name">list</span> = seq {
+    <span class="org-keyword">match</span> list <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> x::xs -&gt; <span class="org-keyword">for</span> e <span class="org-keyword">in</span> xs <span class="org-keyword">do</span> <span class="org-keyword">yield</span> (x, e)
+               <span class="org-keyword">yield!</span> pairs xs
+    <span class="org-fsharp-ui-operator">|</span> _ -&gt; ()
+}
+</pre>
+</div>
+
+<p>
+To determine how many sides are exposed, we count all pairs of connected
+cubes using our <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Lib/Seq.fs"><code>countWhere</code></a> helper. We multiply that number by 2 because when
+two cubes are adjacent, a side is blocked on both of them. Then we subtract that
+number from the total number of sides, which is the amount of cubes times 6.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve1</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">blockedSides</span> =
+        input
+        <span class="org-fsharp-ui-operator">|&gt;</span> List.map parseLine
+        <span class="org-fsharp-ui-operator">|&gt;</span> List.pairs
+        <span class="org-fsharp-ui-operator">|&gt;</span> Seq.countWhere (<span class="org-keyword">fun</span> (<span class="org-variable-name">p1</span>, <span class="org-variable-name">p2</span>) -&gt; isConnected p1 p2)
+
+    List.length input * 6 - blockedSides * 2
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orge16a9eb" class="outline-2">
+<h2 id="orge16a9eb">Part 2</h2>
+<div class="outline-text-2" id="text-orge16a9eb">
+<p>
+Summary: The small 1x1x1 cubes form a bigger shape (a lava droplet) with some
+empty space within. How many sides are exposed on the <i>outside</i> of the shape.
+</p>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/18#part2">here</a> (only if you solved part 1).
+</p>
+
+<p>
+To figure out how many sides are exposed on the outside of the shape we can use
+a <a href="https://en.wikipedia.org/wiki/Flood_fill">flood fill algorithm</a>. What that does is look at all nodes in a graph that are
+reachable from a starting point.
+</p>
+
+<p>
+If we draw an imaginary larger cube around our shape then we can flood fill that
+box and every time a 1x1x1 cube blocks our passage we've seen a side that is
+exposed on the outside.
+</p>
+
+<p>
+We'll start by putting all the points of the lava droplet in a <code>Set</code>. We'll
+offset them by 1 on each axis so that our surrounding cube can start at <code>(0, 0,
+0)</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">lava</span> =
+    input <span class="org-fsharp-ui-operator">|&gt;</span> List.map parseLine
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (<span class="org-keyword">fun</span> (<span class="org-variable-name">x</span>, <span class="org-variable-name">y</span>, <span class="org-variable-name">z</span>) -&gt; PackedPoint.make (x + 1) (y + 1) (z + 1))
+    <span class="org-fsharp-ui-operator">|&gt;</span> Set.ofSeq
+</pre>
+</div>
+
+<p>
+To determine the neighbours of any point we'll just hardcode a list with
+adjacent points. To determine which ones are in our cube we <i>could</i> look at our
+set and determine the max coordinates, but we can also take a sneak peak at our
+input and see that it's smaller than 25x25x25. Then we just hardcode that.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">neighbours</span> (<span class="org-variable-name">x</span>, <span class="org-variable-name">y</span>, <span class="org-variable-name">z</span>) = [
+    (x + 1, y, z); (x - 1, y, z);
+    (x, y + 1, z); (x, y - 1, z);
+    (x, y, z + 1); (x, y, z - 1);
+]
+
+<span class="org-keyword">let</span> <span class="org-function-name">neighboursInRange</span> <span class="org-variable-name">point</span> =
+    point <span class="org-fsharp-ui-operator">|&gt;</span> neighbours
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.filter (<span class="org-keyword">fun</span> (<span class="org-variable-name">x</span>, <span class="org-variable-name">y</span>, <span class="org-variable-name">z</span>) -&gt;
+        0 &lt;= x &amp;&amp; x &lt; 25 &amp;&amp; 0 &lt; y &amp;&amp; y &lt; 25 &amp;&amp; 0 &lt; z &amp;&amp; z &lt; 25)
+</pre>
+</div>
+
+<p>
+With that we can write our flood fill. When we look at a cell, we check it's
+neighbours. Cells that are not part of the lava droplet and that we haven't
+<i>flooded</i> yet are <code>air</code> cells. Each part of the lava droplet that's a neighbour
+of the current point, is a side on the surface of that droplet and so we need to
+count it.
+</p>
+
+<p>
+Then we <code>fold</code> over the <code>air</code> cubes, recursively calling our <code>loop</code> in order to
+check the rest of our box. Any cells we look at are added to <code>seen</code> so that we
+don't look at them twice.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">floodFill</span> <span class="org-variable-name">start</span> =
+    <span class="org-keyword">let</span> <span class="org-variable-name">seen</span> = HashSet.empty <span class="org-fsharp-ui-operator">|&gt;</span> HashSet.add start
+    <span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">loop</span> <span class="org-variable-name">at</span> <span class="org-variable-name">cellsSeen</span> <span class="org-variable-name">lavaSeenCount</span> =
+        <span class="org-keyword">let</span> <span class="org-variable-name">neighbours</span> = neighboursInRange at
+        <span class="org-keyword">let</span> <span class="org-variable-name">air</span> = neighbours <span class="org-fsharp-ui-operator">|&gt;</span> List.reject (<span class="org-keyword">fun</span> <span class="org-variable-name">pt</span> -&gt; HashSet.contains pt lava)
+        <span class="org-keyword">let</span> <span class="org-variable-name">lavaCount</span> = List.length neighbours - List.length air
+
+        <span class="org-keyword">let</span> (<span class="org-variable-name">lavaSeenAtNeighbours</span>, <span class="org-variable-name">cellsSeenAtNeighbours</span>) =
+            List.fold (<span class="org-keyword">fun</span> (<span class="org-variable-name">lavaSeenCount</span>, <span class="org-variable-name">cellsSeen</span>) <span class="org-variable-name">nextCell</span> -&gt;
+                <span class="org-keyword">if</span> HashSet.contains nextCell cellsSeen <span class="org-keyword">then</span> (lavaSeenCount, cellsSeen)
+                <span class="org-keyword">else</span> loop nextCell <span class="org-fsharp-ui-operator">&lt;|</span> HashSet.add nextCell cellsSeen <span class="org-fsharp-ui-operator">&lt;|</span> lavaSeenCount) (lavaSeenCount + lavaCount, cellsSeen) air
+
+        (lavaSeenAtNeighbours, cellsSeenAtNeighbours)
+    loop start seen 0
+</pre>
+</div>
+
+<p>
+We then call it using <code>(0, 0, 0)</code> as the starting point to find the solution.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">floodFill (0, 0, 0) <span class="org-fsharp-ui-operator">|&gt;</span> fst
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org60cf190" class="outline-2">
+<h2 id="org60cf190">Improvements</h2>
+<div class="outline-text-2" id="text-org60cf190">
+<p>
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using <code>for</code>-loops and mutation and then refactor the
+mutation away, changing the <code>for</code>-loop into a <code>fold</code> or a <code>scan</code>.
+</p>
+
+<p>
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+</p>
+
+<p>
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something <i>new</i> then it will still end up in this section.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org8d1b0ae" class="outline-2">
+<h2 id="org8d1b0ae">Reflection</h2>
+<div class="outline-text-2" id="text-org8d1b0ae">
+<p>
+After the last two days, today's problem was a breath of fresh air. A nice and
+easy problem, simple to code up and far fewer details to keep in my head than
+the two days before. Not too bad for a sunday.
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day18.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

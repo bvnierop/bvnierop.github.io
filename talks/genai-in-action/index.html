@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GenAI In Action</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">GenAI In Action</h1>
+<p class="subtitle">Sep 18, 2024</p>
+</header><p>
+On September 20th 2024 I gave the talk GenAI In Action: Real-World Applications.
+The goal of the talk is to show applications using GenAI solutions that go
+beyond the chat bot, although they may still be based on Large Language Models.
+</p>
+
+<p>
+The talk weaves theory with demos. Every demo it supposed to run locally. On a
+laptop. Because I have a peculiar setup, not all of the models use the GPU.
+Still, all demos ran reasonably fast.
+</p>
+
+<div id="outline-container-org3f6337d" class="outline-2">
+<h2 id="org3f6337d">Demo application</h2>
+<div class="outline-text-2" id="text-org3f6337d">
+<p>
+The demo application is a simple TODO-app supercharged with a number of
+AI-powered features. Specifically, these features are OCR, audio/video
+transcription, semantic search of notes, images and audio/video, summarizing
+notes and extracting actions from notes.
+</p>
+
+<p>
+Find the demo application on <a href="https://github.com/bvnierop/ai-notes">GitHub</a>.
+</p>
+</div>
+
+<div id="outline-container-org2e47ade" class="outline-3">
+<h3 id="org2e47ade">OCR</h3>
+<div class="outline-text-3" id="text-org2e47ade">
+<p>
+In the first demo we use <a href="https://github.com/JaidedAI/EasyOCR">EasyOCR</a> to scan the text in an image. As a bonus, and
+this has little to do with AI, we overlay the text on the image so that it can
+be selected, copied, etc.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgc140ffb" class="outline-3">
+<h3 id="orgc140ffb">Transcribe A/V</h3>
+<div class="outline-text-3" id="text-orgc140ffb">
+<p>
+<a href="https://github.com/openai/whisper">Whisper</a> by OpenAI is a great audio transcribing model, but has as a downside
+that it can only take 30 seconds of audio as input. Silero VAD can scan an audio
+file for parts with sound and divide it into chunks, that we can then feed to
+Whisper.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org10cd627" class="outline-3">
+<h3 id="org10cd627">Semantic Search</h3>
+<div class="outline-text-3" id="text-org10cd627">
+<p>
+In order to enable semantic search, including in the videos, we use <a href="https://github.com/facebookresearch/faiss">faiss</a>, an
+open source similarity search library, as an in-memory vector database. <a href="https://github.com/microsoft/unilm/tree/master/minilm">MiniLM</a>
+is used for vector encoding our notes as well as the search query.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org2267148" class="outline-3">
+<h3 id="org2267148">Summary</h3>
+<div class="outline-text-3" id="text-org2267148">
+<p>
+For summarizing I wanted to use something like <code>phi3</code>, but couldn't get that to
+recognize my GPU which made it unbearably slow.
+</p>
+
+<p>
+I ended up using <a href="https://huggingface.co/facebook/bart-large-cnn">bart-large-cnn</a>, which is a finetuned vversion of <a href="https://huggingface.co/facebook/bart-large">bart-large</a>,
+trained on CNN Daily Mail, which is a huge set of <code>(text, summary)</code> pairs.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org07b30cf" class="outline-3">
+<h3 id="org07b30cf">Generate Actions</h3>
+<div class="outline-text-3" id="text-org07b30cf">
+<p>
+Similarly for scanning our notes for actions I ended up using a <code>bart</code> model.
+This time I used <a href="https://huggingface.co/facebook/bart-large-mnli">bart-large-mnli</a>, which is strong in natural language inference.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgf4d04b4" class="outline-2">
+<h2 id="orgf4d04b4">Sheets</h2>
+<div class="outline-text-2" id="text-orgf4d04b4">
+<p>
+<a href="2024-09-20-rs-valley-gen-ai-in-action-sheets.pdf">GenAI In Action at Rockstars Valley</a>
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

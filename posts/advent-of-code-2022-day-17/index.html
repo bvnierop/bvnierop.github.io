@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 17: Pyroclastic Flow</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 17: Pyroclastic Flow</h1>
+<p class="subtitle">Dec 17, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-org454a440" class="outline-2">
+<h2 id="org454a440">Day 17: Pyroclastic Flow</h2>
+<div class="outline-text-2" id="text-org454a440">
+<p>
+Summary: Given a list of moves, repeating if it runs out, simulate a game of
+<i>Tetris</i>, without removing full lines.
+</p>
+
+<p>
+How high is your tower of rocks (pieces) after <code>2022</code> rocks have fallen?
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">&gt;&gt;&gt;&lt;&lt;&gt;&lt;&gt;&gt;&lt;&lt;&lt;&gt;&gt;&lt;&gt;&gt;&gt;&lt;&lt;&lt;&gt;&gt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&gt;&lt;&gt;&gt;&lt;&lt;&gt;&gt;
+</pre>
+</div>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/17">here</a>.
+</p>
+
+<p>
+After yesterday's foray into bit masks, today I decided to go for bit masks
+again.
+</p>
+
+<p>
+Tetris rocks have odd shapes. To see if they can move to the left, right or
+down, we have to verify that they have no collision with what's already there,
+be it wall, floor or another piece. If we represent each row as an integer, with
+each individual bit indicating if an index in that row is occupied, then it's
+easy to check if the merger of two rows causes a collision. Specifically, two
+rows can merge if their <i>bitwise AND</i> is <code>0</code>.
+</p>
+
+<p>
+If we represent a falling piece in a vacuum, then we can use this to test both
+vertical movement as well as horizontal movement. A piece can move to the left
+(or right) if the <i>bitwise AND</i> of the row that it's in and the moved piece is
+<code>0</code>.
+</p>
+
+<p>
+Representation of the rocks is a bit tedious. We represent them as a list of
+bit masks, with each entry in the list representing a row. Representing the
+floor and the walls is a lot more straight forward.
+</p>
+
+<p>
+Note that the <i>least significant bit</i> matches up with the <i>left side of the
+chamber</i>. This way we can count indices logically, but when representing the
+binary it's reversed.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">rocks</span> = [
+    [0b1111]
+    [0b010
+     0b111
+     0b010]
+    [0b100
+     0b100
+     0b111]
+    [0b1
+     0b1
+     0b1
+     0b1]
+    [0b11
+     0b11]
+]
+<span class="org-keyword">let</span> <span class="org-variable-name">floor</span> = 0b111111111
+<span class="org-keyword">let</span> <span class="org-variable-name">wall</span> = 0b100000001
+</pre>
+</div>
+
+<p>
+We need a circular collection. It seems like this isn't very difficult to do. We
+can turn a sequence circular by first yielding all of it's items and then
+recursively keep doing that.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">circular</span> <span class="org-variable-name">sequence</span> =
+    <span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">items</span> () = seq {
+        <span class="org-keyword">for</span> e <span class="org-keyword">in</span> sequence <span class="org-keyword">do</span> <span class="org-keyword">yield</span> e
+        <span class="org-keyword">yield!</span> items ()
+    }
+    items ()
+</pre>
+</div>
+
+<p>
+It turns out that doing this and then asking a large number of items from it is
+very, very slow. So instead, we build a more efficient one using an array and a
+modulo on the index. The <code>modE</code> function works correctly for negative numbers.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">CircularCollection</span> =
+    <span class="org-keyword">let</span> <span class="org-function-name">modE</span> <span class="org-variable-name">a</span> <span class="org-variable-name">b</span> = ((a % b) + b) % b
+    <span class="org-keyword">type</span> <span class="org-type">t</span>&lt;'a&gt; = ('a array * int * int)
+    <span class="org-keyword">let</span> <span class="org-function-name">init</span> (<span class="org-variable-name">source</span>: 'a <span class="org-variable-name">seq</span>) =
+        <span class="org-keyword">let</span> <span class="org-variable-name">asArray</span> = Seq.toArray source
+        (asArray, 0, Array.length asArray)
+    <span class="org-keyword">let</span> <span class="org-function-name">moveNext</span> ((<span class="org-variable-name">source</span>, <span class="org-variable-name">index</span>, <span class="org-variable-name">length</span>): <span class="org-type">t</span><span class="org-fsharp-ui-generic">&lt;'a&gt;</span>) =
+        <span class="org-keyword">let</span> <span class="org-variable-name">nextIndex</span> = modE (index + 1) length
+        (source, nextIndex, length)
+    <span class="org-keyword">let</span> <span class="org-function-name">item</span> ((<span class="org-variable-name">source</span>, <span class="org-variable-name">index</span>, <span class="org-variable-name">_length</span>): <span class="org-type">t</span><span class="org-fsharp-ui-generic">&lt;'a&gt;</span>) =
+        source[index]
+    <span class="org-keyword">let</span> <span class="org-function-name">itemAt</span> <span class="org-variable-name">at</span> ((<span class="org-variable-name">source</span>, <span class="org-variable-name">index</span>, <span class="org-variable-name">length</span>): <span class="org-type">t</span><span class="org-fsharp-ui-generic">&lt;'a&gt;</span>) =
+        <span class="org-keyword">let</span> <span class="org-variable-name">idx</span> = modE (index + at) length
+        source[idx]
+    <span class="org-keyword">let</span> <span class="org-function-name">index</span> ((<span class="org-variable-name">_source</span>, <span class="org-variable-name">index</span>, <span class="org-variable-name">_length</span>): <span class="org-type">t</span><span class="org-fsharp-ui-generic">&lt;'a&gt;</span>) = index
+    <span class="org-keyword">let</span> <span class="org-function-name">length</span> ((<span class="org-variable-name">_source</span>, <span class="org-variable-name">_index</span>, <span class="org-variable-name">length</span>): <span class="org-type">t</span><span class="org-fsharp-ui-generic">&lt;'a&gt;</span>) = length
+</pre>
+</div>
+
+<p>
+The problem states that a new rock always spawns with three rows between its
+bottom and the top of the current tower, and two tiles from the left wall. We shift
+the rock by three bits to put it in the right spot and add three wall tiles to
+the existing chamber.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">spawn</span> <span class="org-variable-name">rock</span> <span class="org-variable-name">chamber</span> =
+    <span class="org-keyword">let</span> <span class="org-variable-name">shiftedRock</span> =
+        rock <span class="org-fsharp-ui-operator">|&gt;</span> List.map (<span class="org-keyword">fun</span> <span class="org-variable-name">line</span> -&gt; line &lt;&lt;&lt; 3)
+
+    <span class="org-keyword">let</span> <span class="org-variable-name">extendedChamber</span> =
+        rock
+        <span class="org-fsharp-ui-operator">|&gt;</span> List.fold (<span class="org-keyword">fun</span> <span class="org-variable-name">chamber</span> <span class="org-variable-name">rock</span> -&gt; wall :: chamber) chamber
+    (shiftedRock, wall :: wall :: wall :: extendedChamber)
+</pre>
+</div>
+
+<p>
+We also need a <a href="https://en.wikipedia.org/wiki/Zipper_(data_structure)">zipper</a>. The chamber is represented as a list. As the rock falls
+through the chamber we need to access and change various different points in
+that list. A basic implementation for a list zipper is not very difficult. Note
+that <code>update</code> updates the <i>tail</i> of the zipper.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">ListZipper</span> =
+    <span class="org-keyword">let</span> <span class="org-function-name">init</span> (<span class="org-variable-name">list</span>: 'a <span class="org-variable-name">list</span>): ('a <span class="org-variable-name">list</span> * 'a <span class="org-variable-name">list</span>) = ([], list)
+    <span class="org-keyword">let</span> <span class="org-function-name">next</span> (<span class="org-variable-name">head</span>, <span class="org-variable-name">tail</span>) =
+        <span class="org-keyword">match</span> tail <span class="org-keyword">with</span>
+        <span class="org-fsharp-ui-operator">|</span> x::xs -&gt; x :: head, xs
+        <span class="org-fsharp-ui-operator">|</span> [] -&gt; failwith <span class="org-string">"Cannot zip next on empty list"</span>
+
+    <span class="org-keyword">let</span> <span class="org-function-name">prev</span> (<span class="org-variable-name">head</span>, <span class="org-variable-name">tail</span>) =
+        <span class="org-keyword">match</span> head <span class="org-keyword">with</span>
+        <span class="org-fsharp-ui-operator">|</span> x::xs -&gt; xs, x :: tail
+        <span class="org-fsharp-ui-operator">|</span> [] -&gt; failwith <span class="org-string">"Cannot zip prev on empty list"</span>
+
+    <span class="org-keyword">let</span> <span class="org-function-name">update</span> (<span class="org-variable-name">updater</span>: 'a <span class="org-variable-name">list</span> -&gt; 'a <span class="org-variable-name">list</span>) (<span class="org-variable-name">head</span>, <span class="org-variable-name">tail</span>): ('a <span class="org-variable-name">list</span> * 'a <span class="org-variable-name">list</span>) = (head, updater tail)
+
+    <span class="org-keyword">let</span> <span class="org-function-name">hasNext</span> (<span class="org-variable-name">_head</span>, <span class="org-variable-name">tail</span>) =
+        <span class="org-keyword">match</span> tail <span class="org-keyword">with</span> <span class="org-fsharp-ui-operator">|</span> _x::_xs -&gt; <span class="org-keyword">true</span> <span class="org-fsharp-ui-operator">|</span> _ -&gt; <span class="org-keyword">false</span>
+
+    <span class="org-keyword">let</span> <span class="org-function-name">hasPrev</span> (<span class="org-variable-name">head</span>, <span class="org-variable-name">_tail</span>) =
+        <span class="org-keyword">match</span> head <span class="org-keyword">with</span> <span class="org-fsharp-ui-operator">|</span> _x::_xs -&gt; <span class="org-keyword">true</span> <span class="org-fsharp-ui-operator">|</span> _ -&gt; <span class="org-keyword">false</span>
+
+    <span class="org-keyword">let</span> <span class="org-function-name">view</span> (<span class="org-variable-name">_head</span>, <span class="org-variable-name">tail</span>) = tail
+
+    <span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">rebuild</span> (<span class="org-variable-name">head</span>, <span class="org-variable-name">tail</span>) =
+        <span class="org-keyword">match</span> head <span class="org-keyword">with</span>
+        <span class="org-fsharp-ui-operator">|</span> _x::_xs -&gt; rebuild <span class="org-fsharp-ui-operator">&lt;|</span> prev (head, tail)
+        <span class="org-fsharp-ui-operator">|</span> [] -&gt; tail
+</pre>
+</div>
+
+<p>
+Next, we need a bunch of helpers. <code>applyJet</code> moves a rock in the direction of
+the jet. <code>isValidPosition</code> checks that the rock can be in the given position in
+the chamber. It does so by checking the <i>bitwise AND</i> of all rows of both itself
+and the part of the chamber it's in. We use <code>Seq.forall2</code> rather than
+<code>List.forall2</code> because <code>Seq</code> stops when the shorter list runs out of elements.
+</p>
+
+<p>
+<code>tryFall</code> tries to move the rock down one position. <code>tryJet</code> attempts to apply a
+jet. <code>tryStep</code> combines the two. Note that if trying a jet fails, the rock
+simply does not move to the side. If falling fails, the rock settles in place
+and we move on to the next rock.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">applyJet</span> <span class="org-variable-name">jet</span> <span class="org-variable-name">rock</span> =
+    <span class="org-keyword">let</span> <span class="org-variable-name">fn</span> = <span class="org-keyword">match</span> jet <span class="org-keyword">with</span> <span class="org-fsharp-ui-operator">|</span> <span class="org-string">'&lt;'</span> -&gt; (&gt;&gt;&gt;) <span class="org-fsharp-ui-operator">|</span> <span class="org-string">'&gt;'</span> -&gt; (&lt;&lt;&lt;) <span class="org-fsharp-ui-operator">|</span> _ -&gt; failwith <span class="org-string">"Invalid jet"</span>
+    rock <span class="org-fsharp-ui-operator">|&gt;</span> List.map (<span class="org-keyword">fun</span> <span class="org-variable-name">x</span> -&gt; fn x 1)
+
+<span class="org-keyword">let</span> <span class="org-function-name">isValidPosition</span> <span class="org-variable-name">rock</span> <span class="org-variable-name">chamber</span> =
+    Seq.forall2 (<span class="org-keyword">fun</span> <span class="org-variable-name">r</span> <span class="org-variable-name">c</span> -&gt; r &amp;&amp;&amp; c = 0) <span class="org-fsharp-ui-operator">&lt;|</span> rock <span class="org-fsharp-ui-operator">&lt;|</span> ListZipper.view chamber
+
+<span class="org-keyword">let</span> <span class="org-function-name">tryFall</span> <span class="org-variable-name">chamber</span> <span class="org-variable-name">rock</span> =
+    <span class="org-keyword">let</span> <span class="org-variable-name">nextChamberState</span> = ListZipper.next chamber <span class="org-comment-delimiter">// </span><span class="org-comment">should always work because we have a floor
+</span>    <span class="org-keyword">if</span> isValidPosition rock nextChamberState <span class="org-keyword">then</span> Some nextChamberState
+    <span class="org-keyword">else</span> None
+
+<span class="org-keyword">let</span> <span class="org-function-name">tryJet</span> <span class="org-variable-name">chamber</span> <span class="org-variable-name">jet</span> <span class="org-variable-name">rock</span> =
+    <span class="org-keyword">let</span> <span class="org-variable-name">shiftedRock</span> = applyJet jet rock
+    <span class="org-keyword">if</span> isValidPosition shiftedRock chamber <span class="org-keyword">then</span> Some shiftedRock
+    <span class="org-keyword">else</span> None
+
+<span class="org-keyword">let</span> <span class="org-function-name">tryStep</span> <span class="org-variable-name">chamber</span> <span class="org-variable-name">rock</span> <span class="org-variable-name">jets</span> =
+    <span class="org-keyword">let</span> <span class="org-variable-name">shiftedRock</span> = Option.defaultValue <span class="org-fsharp-ui-operator">&lt;|</span> rock <span class="org-fsharp-ui-operator">&lt;|</span> tryJet chamber (CircularCollection.item jets) rock
+    <span class="org-keyword">let</span> <span class="org-variable-name">fallen</span> = tryFall chamber <span class="org-fsharp-ui-operator">&lt;|</span> shiftedRock
+    (Option.defaultValue chamber fallen, shiftedRock, CircularCollection.moveNext jets, Option.isSome fallen)
+</pre>
+</div>
+
+<p>
+Merging uses the <code>update</code> method of our zipper, merging the chamber and the
+rock, putting it into place. We can merge each row by using the <i>bitwise OR</i>
+operator.
+</p>
+
+<p>
+If there are empty rows then we remove them. This ensures both that when we
+spawn the next rock we can blindly add three empty rows as well as that the
+height of our tower is simply the amount of rows of the chamber.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">merge</span> <span class="org-variable-name">chamber</span> <span class="org-variable-name">rock</span> =
+    chamber
+    <span class="org-fsharp-ui-operator">|&gt;</span> ListZipper.update (<span class="org-keyword">fun</span> <span class="org-variable-name">tail</span> -&gt;
+            <span class="org-keyword">let</span> <span class="org-variable-name">top</span> = (Seq.map2 (<span class="org-keyword">fun</span> <span class="org-variable-name">c</span> <span class="org-variable-name">r</span> -&gt; c ||| r) <span class="org-fsharp-ui-operator">&lt;|</span> tail <span class="org-fsharp-ui-operator">&lt;|</span> rock) <span class="org-fsharp-ui-operator">|&gt;</span> Seq.toList
+            <span class="org-keyword">let</span> <span class="org-variable-name">rest</span> = List.skip (List.length rock) tail
+            List.append top rest)
+    <span class="org-fsharp-ui-operator">|&gt;</span> ListZipper.rebuild
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.reject ((=) wall)
+</pre>
+</div>
+
+<p>
+That in place, we can simulate dropping a single rock. We try a single step. If
+succesful, we recursively try more steps. If not then we merge the rock into the
+current position with the chamber.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">simulateOneRock</span> <span class="org-variable-name">chamber</span> <span class="org-variable-name">rocks</span> <span class="org-variable-name">jets</span> =
+    <span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">doSimulate</span> <span class="org-variable-name">chamber</span> <span class="org-variable-name">rock</span> <span class="org-variable-name">jets</span> =
+        <span class="org-keyword">let</span> (<span class="org-variable-name">newChamber</span>, <span class="org-variable-name">newRock</span>, <span class="org-variable-name">newJets</span>, <span class="org-variable-name">success</span>) = tryStep chamber rock jets
+        <span class="org-keyword">if</span> success <span class="org-keyword">then</span> doSimulate newChamber newRock newJets
+        <span class="org-keyword">else</span> (merge chamber newRock, CircularCollection.moveNext rocks, newJets)
+    <span class="org-keyword">let</span> (<span class="org-variable-name">rock</span>, <span class="org-variable-name">chamber</span>) = spawn (CircularCollection.item rocks) chamber
+    doSimulate <span class="org-fsharp-ui-operator">&lt;|</span> ListZipper.init chamber <span class="org-fsharp-ui-operator">&lt;|</span> rock <span class="org-fsharp-ui-operator">&lt;|</span> jets
+</pre>
+</div>
+
+<p>
+To simulate multiple falling rocks we simply call <code>Seq.scan</code> on a range. The
+<code>last</code> element in that sequence is the final configuration of our chamber.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">simulateMultipleRocks</span> <span class="org-variable-name">chamber</span> <span class="org-variable-name">rocks</span> <span class="org-variable-name">jets</span> <span class="org-variable-name">n</span> =
+    {1..n}
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.scan (<span class="org-keyword">fun</span> (<span class="org-variable-name">c</span>, <span class="org-variable-name">r</span>, <span class="org-variable-name">j</span>) <span class="org-variable-name">_i</span> -&gt; simulateOneRock c r j) (chamber, rocks, jets)
+</pre>
+</div>
+
+<p>
+To solve, we simulate <code>count = 2022</code> rocks and take the height of the resulting
+chamber, subtracting the floor.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">rockCycle</span> = CircularCollection.init rocks
+<span class="org-keyword">let</span> <span class="org-variable-name">jetCycle</span> = CircularCollection.init jets
+
+simulateMultipleRocks [floor] rockCycle jetCycle count
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.last
+<span class="org-fsharp-ui-operator">|&gt;</span> (<span class="org-keyword">fun</span> (<span class="org-variable-name">c</span>, <span class="org-variable-name">_</span>, <span class="org-variable-name">_</span>) -&gt; List.length c - 1)
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orga7f1b6d" class="outline-2">
+<h2 id="orga7f1b6d">Part 2</h2>
+<div class="outline-text-2" id="text-orga7f1b6d">
+<p>
+Summary: What's the height after 1000000000000 rocks?
+</p>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/17#part2">here</a> (only if you solved part 1).
+</p>
+
+<p>
+I can't say I didn't see this one coming. There's no way that we can simulate
+the falling of this many rocks, so we have to come up with a better idea.
+</p>
+
+<p>
+We can detect a cycle. If we see the same floor configuration at the same rock
+and the same jet, we've discovered a cycle. We can then divide our large number
+by the amount of rocks in the cycle and multiply that by the height of the
+cycle.
+</p>
+
+<p>
+What remains then are the parts of the tower before the cycle starts, and what
+remains after the last cycle ends but there is no full cycle to the
+1000000000000th rock.
+</p>
+
+<p>
+We can store the floor configuration as a height map. For each column the height
+map represents the distance of the closest occupied tile from the top. The index
+of the rock and the jet are simply integers.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">heightMap</span> (<span class="org-variable-name">chamber</span>: <span class="org-type">int list</span>) =
+    <span class="org-keyword">let</span> <span class="org-function-name">heightForIndex</span> <span class="org-variable-name">n</span> =
+        chamber <span class="org-fsharp-ui-operator">|&gt;</span> List.findIndex (<span class="org-keyword">fun</span> <span class="org-variable-name">line</span> -&gt; line &amp;&amp;&amp; (1 &lt;&lt;&lt; n) &lt;&gt; 0)
+    [7..-1..1]
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map heightForIndex
+</pre>
+</div>
+
+<p>
+Then we create a few helpers to cache what we've seen. For each combination of
+height map, rock index and jet index, we store after how many rocks we've seen
+this configuration for the first time and how high the tower was at that point.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">emptyCache</span> (): <span class="org-type">Map</span><span class="org-fsharp-ui-generic">&lt;(int list * int * int), (int * int)&gt;</span> = Map.empty
+<span class="org-keyword">let</span> <span class="org-function-name">cacheKey</span> <span class="org-variable-name">chamber</span> <span class="org-variable-name">rocks</span> <span class="org-variable-name">jets</span> = (heightMap chamber, CircularCollection.index rocks, CircularCollection.index jets)
+<span class="org-keyword">let</span> <span class="org-function-name">inCache</span> <span class="org-variable-name">chamber</span> <span class="org-variable-name">rocks</span> <span class="org-variable-name">jets</span> <span class="org-variable-name">cache</span> = Map.containsKey (cacheKey chamber rocks jets) cache
+<span class="org-keyword">let</span> <span class="org-function-name">addToCache</span> <span class="org-variable-name">index</span> <span class="org-variable-name">chamber</span> <span class="org-variable-name">rocks</span> <span class="org-variable-name">jets</span> <span class="org-variable-name">cache</span> = Map.add (cacheKey chamber rocks jets) (index, List.length chamber) cache
+<span class="org-keyword">let</span> <span class="org-function-name">cacheValue</span> <span class="org-variable-name">chamber</span> <span class="org-variable-name">rocks</span> <span class="org-variable-name">jets</span> (<span class="org-variable-name">cache</span>: <span class="org-type">Map</span><span class="org-fsharp-ui-generic">&lt;(int list * int * int), (int * int)&gt;</span>) = cache[cacheKey chamber rocks jets]
+</pre>
+</div>
+
+<p>
+Now we can start finding a cycle. To find a cycle we simulate dropping a rock
+and then checking the cache to see if we've seen the configuration before. If we
+did not see the configuration before then we recursively continue simulating. If
+we did see the configuration before then we found a cycle. We subtract the
+stored height and index from the current height and index and return a tuple
+containing the first time we saw the cycle, the amount of rocks in the cycle and
+the height difference caused by the cycle.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">findCycle</span> () =
+    <span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">loop</span> <span class="org-variable-name">cache</span> <span class="org-variable-name">index</span> (<span class="org-variable-name">chamber</span>, <span class="org-variable-name">rocks</span>, <span class="org-variable-name">jets</span>) =
+        <span class="org-keyword">let</span> (<span class="org-variable-name">c</span>, <span class="org-variable-name">r</span>, <span class="org-variable-name">j</span>) = simulateOneRock chamber rocks jets
+        <span class="org-keyword">if</span> <span class="org-keyword">not</span> (inCache c r j cache) <span class="org-keyword">then</span> loop <span class="org-fsharp-ui-operator">&lt;|</span> addToCache index c r j cache <span class="org-fsharp-ui-operator">&lt;|</span> index + 1 <span class="org-fsharp-ui-operator">&lt;|</span> (c, r, j)
+        <span class="org-keyword">else</span> <span class="org-keyword">let</span> curHeight = List.length c
+                <span class="org-keyword">let</span> (<span class="org-variable-name">cachedIndex</span>, <span class="org-variable-name">cachedHeight</span>) = cacheValue c r j cache
+                (cachedIndex, index - cachedIndex, curHeight - cachedHeight)
+    loop <span class="org-fsharp-ui-operator">&lt;|</span> emptyCache () <span class="org-fsharp-ui-operator">&lt;|</span> 1 <span class="org-fsharp-ui-operator">&lt;|</span> ([floor], rockCycle, jetCycle)
+
+<span class="org-keyword">let</span> (<span class="org-variable-name">cStart</span>, <span class="org-variable-name">cLength</span>, <span class="org-variable-name">cHeight</span>) = findCycle ()
+</pre>
+</div>
+
+<p>
+Next we determine how much we still have to simulate and how much we can
+calculate based on the cycle. <code>pre</code> is the number of rocks to simulate <i>before
+the cycle starts</i>. <code>cycles</code> is the amount of cycles. We mutiply it by the height
+of an individual cycle to determine the total height from cycles. <code>post</code> is the
+amount of steps we still need to simulate after the <i>last</i> cycle.
+</p>
+
+<p>
+The order in which we do this, doesn't matter. If a cycle occurs after <code>n</code>
+rocks, a cycle of the same length and height occurs after <code>n + 1</code> blocks. This
+means we can simulate <code>pre</code> and <code>post</code> together and add the cycles after that.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">pre</span> = cStart
+<span class="org-keyword">let</span> <span class="org-variable-name">cycles</span> = (steps - int64 cStart) / int64 cLength
+<span class="org-keyword">let</span> <span class="org-variable-name">post</span> = int32 <span class="org-fsharp-ui-operator">&lt;|</span> (steps - int64 cStart) % int64 cLength
+
+<span class="org-keyword">let</span> <span class="org-variable-name">heightFromCycles</span> = cycles * int64 cHeight
+
+<span class="org-keyword">let</span> <span class="org-variable-name">leftToSimulate</span> = pre + post
+
+simulateMultipleRocks [floor] rockCycle jetCycle leftToSimulate
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.last
+<span class="org-fsharp-ui-operator">|&gt;</span> (<span class="org-keyword">fun</span> (<span class="org-variable-name">c</span>, <span class="org-variable-name">_</span>, <span class="org-variable-name">_</span>) -&gt; int64 <span class="org-fsharp-ui-operator">&lt;|</span> List.length c - 1)
+<span class="org-fsharp-ui-operator">|&gt;</span> ((+) heightFromCycles)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8e0f9c6" class="outline-2">
+<h2 id="org8e0f9c6">Improvements</h2>
+<div class="outline-text-2" id="text-org8e0f9c6">
+<p>
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using <code>for</code>-loops and mutation and then refactor the
+mutation away, changing the <code>for</code>-loop into a <code>fold</code> or a <code>scan</code>.
+</p>
+
+<p>
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+</p>
+
+<p>
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something <i>new</i> then it will still end up in this section.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orge1e47e7" class="outline-2">
+<h2 id="orge1e47e7">Reflection</h2>
+<div class="outline-text-2" id="text-orge1e47e7">
+<p>
+Today was a fun problem, full of tiny little details. I have to admit that I was
+way to hungover to solve a problem with this many details. I had a hard time
+wrapping my head around basically all of it and spent way too long.
+</p>
+
+<p>
+It would have been a better problem if I did not have a Christmas party the
+night before. But such is life.
+</p>
+
+<p>
+On to the next one!
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day17.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

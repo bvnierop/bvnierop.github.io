@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 08</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 08</h1>
+<p class="subtitle">Dec 08, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-org182813b" class="outline-2">
+<h2 id="org182813b">Day 08: Treetop Tree House</h2>
+<div class="outline-text-2" id="text-org182813b">
+<p>
+Summary: Given the heights of trees in a grid, determine how many trees are
+visible from outside the grid.
+</p>
+
+<p>
+A tree is visible if only smaller trees have been seen. Note that some trees can
+be seen from more than one side and that all trees on the edges of the grid are
+visible as no larger trees block them.
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">30373
+25512
+65332
+33549
+35390
+</pre>
+</div>
+
+<p>
+Read the full description <a href="https://adventofcode.com/2022/day/8">here</a>.
+</p>
+
+<p>
+This is one of those problems where my imperative mind is a <i>lot</i> faster than my
+functional mind, so pay no heed to the quality of the code. It's bad. But it
+solves the problem.
+</p>
+
+<p>
+For this problem we need to look at every line from two directions. That means
+we look at every cell of the grid four times.
+</p>
+
+<p>
+For each pass, a tree is visible if it's strictly taller than any tree we've
+seen in the line so far, or if it's already been marked visible from another
+side.
+</p>
+
+<p>
+After the more involved parsing of the past few days, parsing today's input is
+very easy:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">treeMap</span> =
+    input
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (Seq.map Int32.parseChr)
+    <span class="org-fsharp-ui-operator">|&gt;</span> array2D
+</pre>
+</div>
+
+<p>
+<code>Int32.parseChr</code> is a helper that wraps <code>Int32.Parse</code>. This gives us a <i>mutable</i>
+two-dimensional array of tree heights.
+</p>
+
+<p>
+We also need a mutable two-dimensional array to mark if trees are visible. We
+can build it off the <code>treeMap</code>. Edges are always visible. We'll mark everything
+else as not visible to start with.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">visible</span> = Array2D.init rows columns
+                            (<span class="org-keyword">fun</span> <span class="org-variable-name">r</span> <span class="org-variable-name">c</span> -&gt;
+                                <span class="org-keyword">match</span> (r, c) <span class="org-keyword">with</span>
+                                <span class="org-fsharp-ui-operator">|</span> (0, _) -&gt; <span class="org-keyword">true</span>
+                                <span class="org-fsharp-ui-operator">|</span> (_, 0) -&gt; <span class="org-keyword">true</span>
+                                <span class="org-fsharp-ui-operator">|</span> (row, _) <span class="org-keyword">when</span> row = rows - 1 -&gt; <span class="org-keyword">true</span>
+                                <span class="org-fsharp-ui-operator">|</span> (_, col) <span class="org-keyword">when</span> col = columns - 1 -&gt; <span class="org-keyword">true</span>
+                                <span class="org-fsharp-ui-operator">|</span> _ -&gt; <span class="org-keyword">false</span>)
+</pre>
+</div>
+
+<p>
+As described above, a tree is visible if it's strictly higher than a tree we've
+seen before in the same line and direction, or if it's already been marked
+visible. The argument <code>high</code> in this helper represents the highest tree seen so
+far.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">isVisible</span> (<span class="org-variable-name">row</span>, <span class="org-variable-name">col</span>)  <span class="org-variable-name">high</span> =
+    visible[row,col] || 
+    treeMap[row,col] &gt; high
+</pre>
+</div>
+
+<p>
+Then comes the ugliness. First we look at each row. For each row we keep track
+of the highest tree and update the <code>visible</code> array. We have already marked the
+edges so we can skip them.
+</p>
+
+<p>
+We have to check both directions so after going from left to right, we also go
+right to left.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">for</span> row = 1 <span class="org-keyword">to</span> rows - 2 <span class="org-keyword">do</span>
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">high</span> = treeMap[row,0]
+    <span class="org-keyword">for</span> left = 1 <span class="org-keyword">to</span> columns - 2 <span class="org-keyword">do</span>
+        visible[row,left] &lt;- isVisible (row, left) high
+        high &lt;- max high treeMap[row,left]
+
+    high &lt;- treeMap[row, columns - 1]
+    <span class="org-keyword">for</span> right = columns - 2 <span class="org-keyword">downto</span> 1 <span class="org-keyword">do</span>
+        visible[row,right] &lt;- isVisible (row, right) high
+        high &lt;- max high treeMap[row,right]
+</pre>
+</div>
+
+<p>
+Then we can do the same for columns rather than rows to finish checking all four
+directions.
+</p>
+
+<p>
+<code>Array2D</code> implements <code>IEnumerable</code>, so we can use <code>Seq</code> functions on them. That
+makes it easy to count the visible trees using my <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Lib/Seq.fs"><code>countWhere</code></a> helper.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">visible
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.cast
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.countWhere id
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgaf8cdf5" class="outline-2">
+<h2 id="orgaf8cdf5">Part 2</h2>
+<div class="outline-text-2" id="text-orgaf8cdf5">
+<p>
+Summary: In part two we have to determine the tree with the highest <i>scenic
+score</i>. The <i>scenic score</i> of a tree is determined by how many other trees are
+visible from that tree. Once again we have to look in all four cardinal
+directions.
+</p>
+
+<p>
+The amount of trees per cardinal direction are then multiplied by each other to
+determine the score.
+</p>
+
+<p>
+So if to the north we can see 3 trees, to the south we can see 2 trees and to the
+east and west we can see 1 tree, the score is <code>3 * 2 * 1 * 1 = 6</code>
+</p>
+
+<p>
+A tree is visible from another tree if it's <i>smaller</i> than the tree of origin and
+the view has not been obstructed yet by a tree that is <i>equal to or larger</i> than
+the tree of origin.
+</p>
+
+<p>
+The way I solved this is&#x2026; not pretty. The helper function <code>scenicScore</code> takes
+a grid location and the height of the tree at that location and returns the
+score for that tree.
+</p>
+
+<p>
+It does that by looking into each direction and, if not yet blocked, adding 1 to
+the score for that line. Note that the tree that does the blocking can be seen.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">scenicScore</span> <span class="org-variable-name">row</span> <span class="org-variable-name">col</span> <span class="org-variable-name">treeHeight</span> =
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">score</span> = 1
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">visible</span> = 0
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">blocked</span> = <span class="org-keyword">false</span>
+    <span class="org-keyword">for</span> r = row - 1 <span class="org-keyword">downto</span> 0 <span class="org-keyword">do</span>
+        <span class="org-keyword">if</span> treeMap[r,col] &gt;= treeHeight &amp;&amp; <span class="org-keyword">not</span> blocked <span class="org-keyword">then</span> visible &lt;- visible + 1; blocked &lt;- <span class="org-keyword">true</span>
+        <span class="org-keyword">if</span> <span class="org-keyword">not</span> blocked <span class="org-keyword">then</span> visible &lt;- visible + 1
+    score &lt;- score * visible
+    visible &lt;- 0
+    blocked &lt;- <span class="org-keyword">false</span>
+    <span class="org-keyword">for</span> r = row + 1 <span class="org-keyword">to</span> rows - 1 <span class="org-keyword">do</span>
+        <span class="org-keyword">if</span> treeMap[r,col] &gt;= treeHeight &amp;&amp; <span class="org-keyword">not</span> blocked <span class="org-keyword">then</span> visible &lt;- visible + 1; blocked &lt;- <span class="org-keyword">true</span>
+        <span class="org-keyword">if</span> <span class="org-keyword">not</span> blocked <span class="org-keyword">then</span> visible &lt;- visible + 1
+</pre>
+</div>
+
+<p>
+For two directions, this is what that looks like. I'll leave the second
+dimension of this monstrosity as an exercise to the reader. It involves some
+copying and pasting.
+</p>
+
+<p>
+Applying this function to every location in the <code>treeMap</code> and finding the
+maximum can be done elegantly again.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">treeMap
+<span class="org-fsharp-ui-operator">|&gt;</span> Array2D.mapi scenicScore
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.cast&lt;int&gt;
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.max
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8e9f07c" class="outline-2">
+<h2 id="org8e9f07c">Improvements</h2>
+<div class="outline-text-2" id="text-org8e9f07c">
+<p>
+There is a <i>lot</i> of room for improvement here, but due to other commitments
+there was no time to attempt those improvements. I'll update this post later
+with improvements.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orga7c5a77" class="outline-2">
+<h2 id="orga7c5a77">Reflection</h2>
+<div class="outline-text-2" id="text-orga7c5a77">
+<p>
+This is one of those problems where my imperative mind is a <i>lot</i> faster than my
+functional mind. I spent about 30 minutes solving the problem in imperative
+F#. I spent quite a some time trying to make it nicer but failed. Other
+commitments prevented me from spending more time.
+</p>
+
+<p>
+Since there's much to learn here I <i>really</i> do want to try and make it
+nicer. It'll have to happen later, though.
+</p>
+
+<p>
+The good news is that this is, I think, the first time I've used an unfamiliar
+language for a grid-based problem and finished the problem in a reasonable
+amount of time.
+</p>
+
+<p>
+It's not <i>good</i> code, but it solves the problem and earns the stars <i>and</i> was
+easy to write in a short amount of time. Not all bad, but it definitely needs
+some work.
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day08.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

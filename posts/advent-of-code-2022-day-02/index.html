@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 02</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 02</h1>
+<p class="subtitle">Dec 02, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-org8db4e43" class="outline-2">
+<h2 id="org8db4e43">Day 02: Rock Paper Scissors</h2>
+<div class="outline-text-2" id="text-org8db4e43">
+<p>
+Summary: Given a list of games of Rock Paper Scissors, determine who wins. Award
+points of choice for Rock (1), Paper (2) or Scissors (3) and for winning (6),
+drawing (3) or losing (0). Give the sum of the points of all the games.
+</p>
+
+<p>
+Input is given as two characters per line. The first character represents the
+opponent's choice, the second one the player's. The first character is one of
+"A" (Rock), "B" (Paper) or "C" (Scissors). The second is one of "X" (Rock), "Y"
+(Paper) or "Z" (Scissors).
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">A Y
+B X
+C Z
+</pre>
+</div>
+
+<p>
+Find the full description <a href="https://adventofcode.com/2022/day/2">here</a>.
+</p>
+
+<p>
+Taking a hint from <a href="../advent-of-code-2022-day-01">yesterday</a>'s reflection that an imperative solution that
+perhaps cuts some corners never crossed my mind, today I went for a very dirty
+imperative solution, hard coding where I can.
+</p>
+
+<p>
+The game of Rock Paper Scissors has nine possible outcomes.
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Below plays against right</th>
+<th scope="col" class="org-left">Rock</th>
+<th scope="col" class="org-left">Paper</th>
+<th scope="col" class="org-left">Scissors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">Rock</td>
+<td class="org-left">Draw</td>
+<td class="org-left">Loss</td>
+<td class="org-left">Win</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">Paper</td>
+<td class="org-left">Win</td>
+<td class="org-left">Draw</td>
+<td class="org-left">Loss</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">Scissors</td>
+<td class="org-left">Loss</td>
+<td class="org-left">Win</td>
+<td class="org-left">Draw</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+This means we can loop over the lines, hardcode every possible input and add the
+scores together.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve1</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">score</span> = 0
+    <span class="org-keyword">for</span> line <span class="org-keyword">in</span> input <span class="org-keyword">do</span>
+        <span class="org-keyword">match</span> line.Split(<span class="org-string">" "</span>) <span class="org-keyword">with</span>
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"A"</span>; <span class="org-string">"X"</span>|] -&gt; score &lt;- score + 1 + 3
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"A"</span>; <span class="org-string">"Y"</span>|] -&gt; score &lt;- score + 2 + 6
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"A"</span>; <span class="org-string">"Z"</span>|] -&gt; score &lt;- score + 3 + 0
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"B"</span>; <span class="org-string">"X"</span>|] -&gt; score &lt;- score + 1 + 0
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"B"</span>; <span class="org-string">"Y"</span>|] -&gt; score &lt;- score + 2 + 3
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"B"</span>; <span class="org-string">"Z"</span>|] -&gt; score &lt;- score + 3 + 6
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"C"</span>; <span class="org-string">"X"</span>|] -&gt; score &lt;- score + 1 + 6
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"C"</span>; <span class="org-string">"Y"</span>|] -&gt; score &lt;- score + 2 + 0
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"C"</span>; <span class="org-string">"Z"</span>|] -&gt; score &lt;- score + 3 + 3
+        <span class="org-fsharp-ui-operator">|</span> _ -&gt; failwith <span class="org-string">"Impossible move"</span>
+    score
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgef837b9" class="outline-2">
+<h2 id="orgef837b9">Part 2</h2>
+<div class="outline-text-2" id="text-orgef837b9">
+<p>
+Summary: It turns out that "X", "Y" and "Z" means something different. It means
+that we have to Lose ("X"), Draw ("Y") or Win ("Z") against the opponent's move.
+</p>
+
+<p>
+Had I used a different strategy to implement the first part, part two may have
+required some new logic. However, despite the meaning of "X", "Y" and "Z"
+changing, the game still has the same nine states. We just have to look at a
+different dimension.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve2</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">score</span> = 0
+    <span class="org-keyword">for</span> line <span class="org-keyword">in</span> input <span class="org-keyword">do</span>
+        <span class="org-keyword">match</span> line.Split(<span class="org-string">" "</span>) <span class="org-keyword">with</span>
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"A"</span>; <span class="org-string">"X"</span>|] -&gt; score &lt;- score + 3 + 0
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"A"</span>; <span class="org-string">"Y"</span>|] -&gt; score &lt;- score + 1 + 3
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"A"</span>; <span class="org-string">"Z"</span>|] -&gt; score &lt;- score + 2 + 6
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"B"</span>; <span class="org-string">"X"</span>|] -&gt; score &lt;- score + 1 + 0
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"B"</span>; <span class="org-string">"Y"</span>|] -&gt; score &lt;- score + 2 + 3
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"B"</span>; <span class="org-string">"Z"</span>|] -&gt; score &lt;- score + 3 + 6
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"C"</span>; <span class="org-string">"X"</span>|] -&gt; score &lt;- score + 2 + 0
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"C"</span>; <span class="org-string">"Y"</span>|] -&gt; score &lt;- score + 3 + 3
+        <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"C"</span>; <span class="org-string">"Z"</span>|] -&gt; score &lt;- score + 1 + 6
+        <span class="org-fsharp-ui-operator">|</span> _ -&gt; failwith <span class="org-string">"Impossible move"</span>
+    score
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org95e7d5f" class="outline-2">
+<h2 id="org95e7d5f">Improvements</h2>
+<div class="outline-text-2" id="text-org95e7d5f">
+<p>
+I thought long and hard about if I want to change anything. Maybe add types for
+the choices and outcomes. In the end that may <i>look</i> nicer but doesn't really
+add something.
+</p>
+
+<p>
+Despite that, there are still two improvements to be made. First of all,
+splitting the line and matching the resulting array is not necessary. We can
+just match any of the nine possible input strings.
+</p>
+
+<p>
+Second is the mutation. After scoring the stars I do want to switch to a more
+functional style.
+</p>
+
+<p>
+Combining both improvements, the solution looks like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve1</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    List.fold (<span class="org-keyword">fun</span> <span class="org-variable-name">score</span> (<span class="org-variable-name">line</span>: <span class="org-type">string</span>) -&gt;
+        <span class="org-keyword">match</span> line <span class="org-keyword">with</span>
+        <span class="org-fsharp-ui-operator">|</span> <span class="org-string">"A X"</span> -&gt; score + 1 + 3
+        <span class="org-fsharp-ui-operator">|</span> <span class="org-string">"A Y"</span> -&gt; score + 2 + 6
+        <span class="org-fsharp-ui-operator">|</span> <span class="org-string">"A Z"</span> -&gt; score + 3 + 0
+        <span class="org-fsharp-ui-operator">|</span> <span class="org-string">"B X"</span> -&gt; score + 1 + 0
+        <span class="org-fsharp-ui-operator">|</span> <span class="org-string">"B Y"</span> -&gt; score + 2 + 3
+        <span class="org-fsharp-ui-operator">|</span> <span class="org-string">"B Z"</span> -&gt; score + 3 + 6
+        <span class="org-fsharp-ui-operator">|</span> <span class="org-string">"C X"</span> -&gt; score + 1 + 6
+        <span class="org-fsharp-ui-operator">|</span> <span class="org-string">"C Y"</span> -&gt; score + 2 + 0
+        <span class="org-fsharp-ui-operator">|</span> <span class="org-string">"C Z"</span> -&gt; score + 3 + 3
+        <span class="org-fsharp-ui-operator">|</span> _ -&gt; failwith <span class="org-string">"Impossible move"</span>) 0 input
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org789cb46" class="outline-2">
+<h2 id="org789cb46">Reflection</h2>
+<div class="outline-text-2" id="text-org789cb46">
+<p>
+Solving today's problem quick and dirty was definitely faster than if I hard
+tried with with <code>List.fold</code> immediately, or if I had added types for both choice
+and outcome, and small functions that determine the outcome based on choice as
+well as the other way around.
+</p>
+
+<p>
+It feels a bit conflicted. On the one hand there's the competetive aspect of
+Advent of Code for which this is completely fine. On the other hand there's the
+goal of writing code in a programming languange that I don't use very
+often. Part of that goal is making that language's good practices my own.
+</p>
+
+<p>
+Those two aspects collide here, as I suspect they will continue to do throughout
+the next problems.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

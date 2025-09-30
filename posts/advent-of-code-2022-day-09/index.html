@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 09: Rope Bridge</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 09: Rope Bridge</h1>
+<p class="subtitle">Dec 09, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-org199c1eb" class="outline-2">
+<h2 id="org199c1eb">Day 09: Rope Bridge</h2>
+<div class="outline-text-2" id="text-org199c1eb">
+<p>
+Summary: Given a list of moves containing cardinal directions and number of
+steps, move a rope over a grid. The rope has two knots, marked <i>head</i> and <i>tail</i>.
+</p>
+
+<p>
+The head follows the steps given in the input. The tail can never be more than a
+single tile behind and will move closer to the head. The specific rules for this
+are in the full problem statement.
+</p>
+
+<p>
+The head and tail both start at (0, 0).
+</p>
+
+<p>
+After simulating the entire set of moves <i>one step at a time</i>, how many
+different tiles did the tail touch?
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">U 5
+L 2
+R 1
+D 1
+</pre>
+</div>
+
+<p>
+Read the full description <a href="https://adventofcode.com/2022/day/9">here</a>.
+</p>
+
+<p>
+At first I solved the wrong problem! The problem statement specifies that the
+tail moves closer to the head <i>after every single step</i>. Each instruction line
+can contain more than one step. <code>U 5</code> for example, is five steps.
+</p>
+
+<p>
+This directive did not register in my mind and I implemented each line as a
+single instruction. Lesson learned. Read closely.
+</p>
+
+<p>
+First we parse the instructions and turn them into sets of moves.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">parseLine</span> (<span class="org-variable-name">line</span>: <span class="org-type">string</span>) =
+    <span class="org-keyword">match</span> line.Split() <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"U"</span>; n|] -&gt; Seq.init (n <span class="org-fsharp-ui-operator">|&gt;</span> Int32.parse) (<span class="org-keyword">fun</span> <span class="org-variable-name">_</span> -&gt; (0, 1))
+    <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"D"</span>; n|] -&gt; Seq.init (n <span class="org-fsharp-ui-operator">|&gt;</span> Int32.parse) (<span class="org-keyword">fun</span> <span class="org-variable-name">_</span> -&gt; (0, -1))
+    <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"L"</span>; n|] -&gt; Seq.init (n <span class="org-fsharp-ui-operator">|&gt;</span> Int32.parse) (<span class="org-keyword">fun</span> <span class="org-variable-name">_</span> -&gt; (-1, 0))
+    <span class="org-fsharp-ui-operator">|</span> [|<span class="org-string">"R"</span>; n|] -&gt; Seq.init (n <span class="org-fsharp-ui-operator">|&gt;</span> Int32.parse) (<span class="org-keyword">fun</span> <span class="org-variable-name">_</span> -&gt; (1, 0))
+    <span class="org-fsharp-ui-operator">|</span> _ -&gt; failwith <span class="org-string">"Failed to parse line"</span>
+</pre>
+</div>
+
+<p>
+Each line turns into a sequence of single-step moves. Each move is represented
+by a tuple containing <code>(delta-of-x, delta-of-y)</code>
+</p>
+
+<p>
+Like most days so far I've started off solving today's problem using an
+imperative style. We can walk over each individual step using a simple
+<code>for</code>-loop. Updating the <i>head</i> is simple as it just follows the steps.
+Each step we also update the tail and then add its new position to a <code>set</code> in
+order to keep track of the answer.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">head</span> = (0, 0)
+<span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">tail</span> = (0, 0)
+<span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">visited</span> = Set.empty
+<span class="org-keyword">for</span> line <span class="org-keyword">in</span> input <span class="org-keyword">do</span>
+    <span class="org-keyword">let</span> <span class="org-variable-name">moves</span> = parseLine line
+    <span class="org-keyword">for</span> (dx, dy) <span class="org-keyword">in</span> moves <span class="org-keyword">do</span>
+        head &lt;- (fst head + dx, snd head + dy)
+        tail &lt;- updateTail head tail
+        visited &lt;- Set.add tail visited
+</pre>
+</div>
+
+<p>
+<code>updateTail</code> can be solved with maths, but throughout the year I don't use those
+skills enough to solve this problem quickly, so my initial solution is to just
+hardcode all the possibilities:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">updateTail</span> (<span class="org-variable-name">hx</span>, <span class="org-variable-name">hy</span>) (<span class="org-variable-name">tx</span>, <span class="org-variable-name">ty</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">dx</span> = hx - tx
+    <span class="org-keyword">let</span> <span class="org-variable-name">dy</span> = hy - ty
+
+    <span class="org-keyword">match</span> (dx, dy) <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> (0, 0) <span class="org-fsharp-ui-operator">|</span> (0, 1) <span class="org-fsharp-ui-operator">|</span> (0, -1) <span class="org-fsharp-ui-operator">|</span> (1, 0) <span class="org-fsharp-ui-operator">|</span> (-1, 0)
+    <span class="org-fsharp-ui-operator">|</span> (1, 1) <span class="org-fsharp-ui-operator">|</span> (1, -1) <span class="org-fsharp-ui-operator">|</span> (-1, 1) <span class="org-fsharp-ui-operator">|</span> (-1, -1) -&gt; (tx, ty)
+
+    <span class="org-fsharp-ui-operator">|</span> (0, 2) <span class="org-fsharp-ui-operator">|</span> (1, 2) <span class="org-fsharp-ui-operator">|</span> (-1, 2) -&gt; (hx, hy - 1)
+    <span class="org-fsharp-ui-operator">|</span> (0, -2) <span class="org-fsharp-ui-operator">|</span> (1, -2) <span class="org-fsharp-ui-operator">|</span> (-1, -2) -&gt; (hx, hy + 1)
+
+    <span class="org-fsharp-ui-operator">|</span> (2, 0) <span class="org-fsharp-ui-operator">|</span> (2, 1) <span class="org-fsharp-ui-operator">|</span> (2, -1) -&gt; (hx - 1, hy)
+    <span class="org-fsharp-ui-operator">|</span> (-2, 0) <span class="org-fsharp-ui-operator">|</span> (-2, 1) <span class="org-fsharp-ui-operator">|</span> (-2, -1) -&gt; (hx + 1, hy)
+
+    <span class="org-fsharp-ui-operator">|</span> _ -&gt; failwith $<span class="org-string">"Failed to update: (({hx}, {hy}) - ({tx}, {ty}) -&gt; {dx}, {dy})"</span>
+</pre>
+</div>
+
+<p>
+If the absolute deltas of both <code>x</code> and <code>y</code> are no larger than <code>1</code> we don't have
+to move the tail. If the tail is two tiles <i>below</i> the head then it has to move
+up to directly below the head and in the same column. If it's two tiles <i>above</i>
+the head it has to move directly above and in the same column.
+</p>
+
+<p>
+Similarly if it's two tiles to the <i>left</i> then it has to move directly to the
+left and in the same row, and if it's two tles to the <i>right</i> then it has to
+move directly to the right and in the same row.
+</p>
+
+<p>
+Any other set of delta's ought to be impossible in the problem and therefore
+doesn't have to be covered.
+</p>
+
+<p>
+Since we've been keeping track of all positions visited by the tail in our loop,
+all we have to return is the size of <code>visited</code>. As it turns out, <code>Set</code> does not
+contain a <code>length</code> function. <code>Set</code> implements <code>Seq</code>, though, so we can still
+easily get the number of items in <code>visited</code>.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org39729cc" class="outline-2">
+<h2 id="org39729cc">Part 2</h2>
+<div class="outline-text-2" id="text-org39729cc">
+<p>
+Summary: Rather than two knots, our rope has ten knots. We still have to
+determine how many tiles the tail (tenth knot) has touched.
+</p>
+
+<p>
+We can no longer represent our rope as two tuples. Instead we should represent
+our rope as a list of <code>n</code> tuples.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">rope</span> = List.init n (<span class="org-keyword">fun</span> <span class="org-variable-name">_</span> -&gt; (0, 0))
+</pre>
+</div>
+
+<p>
+Yesterday I discovered the magic of <code>List.scan</code>. <code>scan</code> acts like <code>fold</code>, but
+rather than returning a single state, it returns all the returned
+states. Example:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">numbers</span> = [1; 2; 3; 4; 5]
+List.scan (<span class="org-keyword">fun</span> <span class="org-variable-name">factorial</span> <span class="org-variable-name">n</span> -&gt; factorial * n) 1 numbers
+</pre>
+</div>
+
+<p>
+The code above returns <code>[1; 1; 2; 6; 24; 120]</code>. Every state encountered. This is
+useful if we want to transform a list into another list, based on some previous
+value or state that depends on an earlier part of the list.
+</p>
+
+<p>
+In this problem we can use it to calculate the position of every knot. The
+position of a knot depends on the position of the knot preceding it. We can
+easily calculate the new position of the head, and then pass that as the first
+state to <code>scan</code> with the remaining knots as the list to process.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> (<span class="org-variable-name">h</span>::<span class="org-variable-name">t</span>) = rope
+<span class="org-keyword">let</span> <span class="org-variable-name">nh</span> = (fst h + dx, snd h + dy)
+rope &lt;- List.scan updateTail nh t
+visited &lt;- Set.add (List.last rope) visited
+</pre>
+</div>
+
+<p>
+Finally it turns out that, because knots that are not the head can move
+diagonally, <code>updateTail</code> now misses a few cases.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">updateTail</span> (<span class="org-variable-name">hx</span>, <span class="org-variable-name">hy</span>) (<span class="org-variable-name">tx</span>, <span class="org-variable-name">ty</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">dx</span> = hx - tx
+    <span class="org-keyword">let</span> <span class="org-variable-name">dy</span> = hy - ty
+
+    <span class="org-keyword">match</span> (dx, dy) <span class="org-keyword">with</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">... snip ...
+</span>    <span class="org-fsharp-ui-operator">|</span> (2, 2) -&gt; (hx - 1, hy - 1)
+    <span class="org-fsharp-ui-operator">|</span> (-2, 2) -&gt; (hx + 1, hy - 1)
+    <span class="org-fsharp-ui-operator">|</span> (2, -2) -&gt; (hx - 1, hy + 1)
+    <span class="org-fsharp-ui-operator">|</span> (-2, -2) -&gt; (hx + 1, hy + 1)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org62d6013" class="outline-2">
+<h2 id="org62d6013">Improvements</h2>
+<div class="outline-text-2" id="text-org62d6013">
+<p>
+First things first. Like every day I want to get rid of the imperative
+style. First we create a function for executing a single step. It takes a rope
+and the move and returns the new rope position. We also get rid of a warning
+about incomplete pattern matching that we introduced with the line
+<code>let (h::t) = rope</code>. This warning is fantastic for production quality code, but
+sometimes unfortunate when competing.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">executeMove</span> <span class="org-variable-name">rope</span> (<span class="org-variable-name">dx</span>, <span class="org-variable-name">dy</span>) =
+    <span class="org-keyword">match</span> rope <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> (hx, hy)::tail -&gt; List.scan updateTail (hx + dx, hy + dy) tail
+    <span class="org-fsharp-ui-operator">|</span> _ -&gt; rope
+</pre>
+</div>
+
+<p>
+The next step is to get rid of the <code>for</code>-loops. We can get rid of the outer for
+loop by generating a flat sequence of moves.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">input
+<span class="org-fsharp-ui-operator">|&gt;</span> List.map parseLine <span class="org-fsharp-ui-operator">|&gt;</span> Seq.concat
+</pre>
+</div>
+
+<p>
+In order to generate all of the rope positions we can use the magic of <code>scan</code>
+once again. We can't use <code>map</code> because the next rope position depends on the
+previous rope position. We could use <code>fold</code> but then we have to keep a
+relatively complex state of both the rope and the <code>visited</code> set, which is also
+more difficult to pipe into the next function.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-fsharp-ui-operator">|&gt;</span> Seq.scan executeMove rope
+</pre>
+</div>
+
+<p>
+Once we have the sequence of all rope positions we can <code>map</code> that to a sequence
+of tail positions, convert that sequence to a set and get its size.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-fsharp-ui-operator">|&gt;</span> Seq.map List.last
+<span class="org-fsharp-ui-operator">|&gt;</span> Set.ofSeq <span class="org-fsharp-ui-operator">|&gt;</span> Seq.length
+</pre>
+</div>
+</div>
+
+<div id="outline-container-orgc409793" class="outline-3">
+<h3 id="orgc409793">Applying some maths</h3>
+<div class="outline-text-3" id="text-orgc409793">
+<p>
+As mentioned before we don't have to hardcode a ton of cases in <code>updateTail</code>. We
+can also apply some maths and some logic. The logic is stated in the problem:
+<i>The next knot moves to its predecessor if it's not directly connected</i>. A knot
+is not directly connected to its predecessor if its at least 2 tiles away on
+either axis.
+</p>
+
+<p>
+If it's not at least 2 removed on either axis it doesn't have to move.
+</p>
+
+<p>
+If it is, since we move the knots after every movement, it's never further than
+2 tiles away on any axis and therefore never has to move more than 1 tile. Let's
+explore three cases.
+</p>
+
+
+
+<div class="org-src-container">
+<pre class="src src-txt">.H.    .H.
+... -&gt; .T.
+.T.    ...
+</pre>
+</div>
+<p>
+In this case <code>T</code>'s <code>x</code> axis does not have to change. On the <code>y</code> axis it has to
+move up 1.
+</p>
+
+<p>
+We'll first introduce a function: <code>sign</code>. <code>sign x</code> returns <code>-1</code> if <code>x</code> is
+negative, <code>0</code> if <code>x</code> is <code>0</code> and <code>1</code> if <code>x</code> is positive.
+</p>
+
+<p>
+The delta (difference) of <code>x</code> coordinates here is <code>0</code>, and so the <code>sign</code> is
+<code>0</code>. The delta of <code>y</code> coordinates is <code>2</code> (as <code>H</code> is higher on the <code>y</code> axis than
+<code>T</code>). <code>sign 2</code> is <code>1</code>, which is what <code>T</code> has to move up.
+</p>
+
+<p>
+So for this case we can change the position of <code>T</code> by <code>(sign dx, sign dy)</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">.H.    .H.
+... -&gt; .T.
+T..    ...
+</pre>
+</div>
+<p>
+In this case we need to move <code>T</code>'s <code>x</code> axis by <code>1</code> and <code>y</code> also by 1. <code>dx</code> is
+<code>1</code>, so <code>sign dx</code> is also <code>1</code>. <code>dy</code> and <code>sign dy</code> remain the same as in the
+previous example.
+</p>
+
+<p>
+For this case we can also change the position of <code>T</code> by <code>(sign dx, sign dy)</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">..H    ..H
+... -&gt; .T.
+T..    ...
+</pre>
+</div>
+<p>
+As in the above case we have to move <code>T</code> by <code>1</code> on the <code>x</code> axis and <code>1</code> on the
+<code>y</code> axis. Both deltas are <code>2</code> now, and <code>sign</code> reduces them to <code>1</code>.
+</p>
+
+<p>
+For this case we can also change the position of <code>T</code> by <code>(sign dx, sign dy)</code>.
+</p>
+
+<p>
+These three cases can be mirrored and turned to form all other possibilities
+where a knot's position has to be modified.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">updateTail</span> (<span class="org-variable-name">hx</span>, <span class="org-variable-name">hy</span>) (<span class="org-variable-name">tx</span>, <span class="org-variable-name">ty</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">dx</span> = hx - tx
+    <span class="org-keyword">let</span> <span class="org-variable-name">dy</span> = hy - ty
+    <span class="org-keyword">if</span> abs dx &gt; 1 || abs dy &gt; 1 <span class="org-keyword">then</span>
+        (tx + sign dx, ty + sign dy)
+    <span class="org-keyword">else</span>
+        (tx, ty)
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgc8cfc3d" class="outline-2">
+<h2 id="orgc8cfc3d">Reflection</h2>
+<div class="outline-text-2" id="text-orgc8cfc3d">
+<p>
+A fun little problem today which made clear the case for careful reading. In my
+first attempt at solving the problem I missed the part where we have to break
+each larger step into steps of 1.
+</p>
+
+<p>
+I learned about <code>scan</code>, which feels like a piece of magic I've been missing in
+my toolset ever since my first attempt at an Advent of Code in OCaml several
+year ago.
+</p>
+
+<p>
+I'm happy that <code>updateTail</code> was small enough that it could be handled with some
+pattern matching, because my skills are way too rusty for the generalized
+version.
+</p>
+
+<p>
+The problems are definitely getting a bit more difficult compared to the
+start. That makes for a nice change of pace.
+</p>
+
+<p>
+On to the next one!
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day09.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

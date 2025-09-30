@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 14: Regolith Reservoir</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 14: Regolith Reservoir</h1>
+<p class="subtitle">Dec 14, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-orgad1b460" class="outline-2">
+<h2 id="orgad1b460">Day 14: Regolith Reservoir</h2>
+<div class="outline-text-2" id="text-orgad1b460">
+<p>
+Summary: Given a 2D layout of a rocky formation, determine how much sand falls
+onto the rocks. Sand falls either directly or diagonally down. If all three
+directions are blocked, it stays in place.
+</p>
+
+<p>
+The source of the sand is at <code>500, 0</code>. As it falls, the Y-coordinate increases.
+</p>
+
+<p>
+The input describes lines of rock formation. Below the described rock formation
+is an infinite void. Sand dropped below the rocks will fall forever.
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">498,4 -&gt; 498,6 -&gt; 496,6
+503,4 -&gt; 502,4 -&gt; 502,9 -&gt; 494,9
+</pre>
+</div>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/14">here</a>.
+</p>
+
+<p>
+We can represent the rock formation as a set of points. Lookup in a set should
+be fast and the amount of sand is relatively sparse. It falls off the edge quite
+quickly.
+</p>
+
+<p>
+To parse the input we can parse each pair of integers splitted by <code>" -&gt; "</code>.  We
+can generate the points by looping over each pair of pairs.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">pPoint</span> = pint32 .&gt;&gt; pchar <span class="org-string">','</span> .&gt;&gt;. pint32
+<span class="org-keyword">let</span> <span class="org-variable-name">pLine</span> = sepBy pPoint (pstring <span class="org-string">" -&gt; "</span>)
+<span class="org-keyword">let</span> <span class="org-function-name">parse</span> <span class="org-variable-name">str</span> = parseOrDie pLine str
+</pre>
+</div>
+
+<p>
+The <code>points</code> function makes a sequence out of each pair of points. We can then
+use that to map each pair of points, concatenate the sequences so that we get
+one sequence with <i>all</i> points and then finally put those into a set.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">points</span> ((<span class="org-variable-name">x1</span>, <span class="org-variable-name">y1</span>), (<span class="org-variable-name">x2</span>, <span class="org-variable-name">y2</span>)) = seq {
+    <span class="org-keyword">for</span> x = min x1 x2 <span class="org-keyword">to</span> max x1 x2 <span class="org-keyword">do</span>
+        <span class="org-keyword">for</span> y = min y1 y2 <span class="org-keyword">to</span> max y1 y2 <span class="org-keyword">do</span>
+            <span class="org-keyword">yield</span> (x, y)
+}
+
+<span class="org-keyword">let</span> <span class="org-variable-name">rocks</span> =
+    input <span class="org-fsharp-ui-operator">|&gt;</span> List.map parse
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (List.pairwise &gt;&gt; List.map points &gt;&gt; Seq.concat)
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.concat
+    <span class="org-fsharp-ui-operator">|&gt;</span> Set.ofSeq
+</pre>
+</div>
+
+<p>
+We need to stop at when sand reaches the lowest point. We get that by looking
+for the largest <code>y</code> in the set of points.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">low</span> = rocks <span class="org-fsharp-ui-operator">|&gt;</span> Seq.maxBy snd <span class="org-fsharp-ui-operator">|&gt;</span> snd
+</pre>
+</div>
+
+<p>
+Then we'll start simulating falling sand. We'll drop one grain at a time. If a
+grain was dropped we'll add it's coordinate to the set with occupied tiles. If
+it fell into the infinite void then we won't mark anything. Therefore we know we
+can stop when the set did not grow bigger.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">simulate</span> <span class="org-variable-name">occupied</span> =
+    <span class="org-keyword">let</span> <span class="org-variable-name">withSand</span> = addSand occupied low (500, 0)
+    <span class="org-keyword">if</span> Set.count occupied = Set.count withSand <span class="org-keyword">then</span> occupied
+    <span class="org-keyword">else</span> simulate withSand
+
+<span class="org-keyword">let</span> <span class="org-variable-name">withSand</span> = simulate rocks
+</pre>
+</div>
+
+<p>
+To simulate a falling grain of sand we'll spawn it at <code>500, 0</code> and look for the
+three possible directions <code>(x, y + 1)</code>, <code>(x - 1, y + 1)</code>, <code>(x + 1, y + 1)</code>, in
+order. If any of those are not occupied, that's where we drop to.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">addSand</span> <span class="org-variable-name">occupied</span> <span class="org-variable-name">threshold</span> (<span class="org-variable-name">atX</span>, <span class="org-variable-name">atY</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">targets</span> = [(atX, atY + 1); (atX - 1, atY + 1); (atX + 1, atY + 1)]
+    <span class="org-keyword">if</span> atY &gt;= threshold <span class="org-keyword">then</span> occupied
+    <span class="org-keyword">else</span>
+        <span class="org-keyword">let</span> <span class="org-variable-name">target</span> =
+            targets <span class="org-fsharp-ui-operator">|&gt;</span> List.map (<span class="org-keyword">fun</span> <span class="org-variable-name">pt</span> -&gt; (pt, Set.contains pt occupied))
+            <span class="org-fsharp-ui-operator">|&gt;</span> List.tryFind (<span class="org-keyword">fun</span> (<span class="org-variable-name">pt</span>, <span class="org-variable-name">occ</span>) -&gt; occ = <span class="org-keyword">false</span>)
+        <span class="org-keyword">match</span> target <span class="org-keyword">with</span>
+        <span class="org-fsharp-ui-operator">|</span> Some (pt, _) -&gt; addSand occupied threshold pt
+        <span class="org-fsharp-ui-operator">|</span> None -&gt; Set.add (atX, atY) occupied
+</pre>
+</div>
+
+<p>
+After all of this, the amount of sand dropped is the size of <code>withSand</code> minus
+the rocks.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">Set.count withSand - Set.count rocks
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org4e46f32" class="outline-2">
+<h2 id="org4e46f32">Part 2</h2>
+<div class="outline-text-2" id="text-org4e46f32">
+<p>
+Summary: It turns out there is no infinite void. Instead, two tiles below the
+lowest rock formation from the input, is the floor. It spreads infinitely in
+both horizontal directions. How much tiles will be filled with sand now?
+</p>
+
+<p>
+The problem statement mentions that the floor is infinite. Infinite is quite
+large and the sand will never quite reach infinity. In fact, the lowest point in
+my input is less than <code>200</code>, so the sand, starting at <code>x=500</code> will never reach
+any <code>x</code> lower than <code>300</code> nor any <code>x</code> higher than <code>700</code>.
+</p>
+
+<p>
+Rather than changing our logic, we can add a floor of that size to our set and
+wait for the set of occupied tiles to not grow bigger.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">rocks</span> = [300..700] <span class="org-fsharp-ui-operator">|&gt;</span> List.fold (<span class="org-keyword">fun</span> <span class="org-variable-name">occ</span> <span class="org-variable-name">x</span> -&gt; Set.add (x, low + 2) occ) rocks
+</pre>
+</div>
+
+<p>
+In this particular case it's not rolling off that will trigger the set not
+growing, though. Instead it's the fact that we'll add a grain of sand to <code>500,0</code>
+twice. The second time the set won't grow and we're done.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgf702666" class="outline-2">
+<h2 id="orgf702666">Improvements</h2>
+<div class="outline-text-2" id="text-orgf702666">
+<p>
+Part two places around 24.000 tiles of sand with my input. The runtime of this
+algorithm was quite slow. Approximately 18 seconds on my machine slow. That's
+kind of insane for such a small problem, so I decided to investigate.
+</p>
+
+<p>
+The first realization is that <code>Set.count</code> in F# is actually <code>O(n)</code>! That
+seems like a bad deal. My first solution was to build a tiny wrapper around F#'s
+<code>Set</code> that keeps count. This reduced the runtime to slightly over 15 seconds,
+which is still too slow, but an improvement.
+</p>
+
+<p>
+The next improvement was to not process all three targets in <code>addSand</code>. By
+switching from <code>List</code> to <code>Seq</code> the search becomes lazy and we only process until
+we found something.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">addSand</span> <span class="org-variable-name">occupied</span> <span class="org-variable-name">threshold</span> (<span class="org-variable-name">atX</span>, <span class="org-variable-name">atY</span>) =
+    <span class="org-comment-delimiter">// </span><span class="org-comment">... snip
+</span>        <span class="org-keyword">let</span> <span class="org-variable-name">target</span> =
+            targets <span class="org-fsharp-ui-operator">|&gt;</span> Seq.map (<span class="org-keyword">fun</span> <span class="org-variable-name">pt</span> -&gt; (pt, Set.contains pt occupied))
+            <span class="org-fsharp-ui-operator">|&gt;</span> Seq.tryFind (<span class="org-keyword">fun</span> (<span class="org-variable-name">pt</span>, <span class="org-variable-name">occ</span>) -&gt; occ = <span class="org-keyword">false</span>)
+    <span class="org-comment-delimiter">// </span><span class="org-comment">... snip</span>
+</pre>
+</div>
+
+<p>
+This improves performance by another second, so we're down to 14 seconds.
+</p>
+
+<p>
+At this point I ran out of ideas and started profiling.
+</p>
+</div>
+
+<div id="outline-container-org941f462" class="outline-3">
+<h3 id="org941f462">F#'s Set</h3>
+<div class="outline-text-3" id="text-org941f462">
+<p>
+By far the most time was spent in <code>Set.contains</code>. As it turns out, <code>Set</code> isn't
+very fast.
+</p>
+
+<p>
+I wrote a new wrapper around .NET's <code>ImmutableSortedSet</code> which has the same
+operations and same type of implementation (it's implemented as a sorted tree)
+and brought the runtime down to 8 seconds. Then I switched to .NET's
+<code>ImmutableHashSet</code> for amortized constant time performance rather than
+<code>O(log(n))</code> and brought the runtime down to three seconds.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org25fc43c" class="outline-3">
+<h3 id="org25fc43c">The cost of immutability</h3>
+<div class="outline-text-3" id="text-org25fc43c">
+<p>
+Trying to push this further, I decided to drop the immutable collection entirely
+and instead use a mutable 2D array to keep track of the sand and use a mutable
+integer to count the grains of sand. <code>addSand</code> now returns a boolean to indicate
+that sand was or was not added. Switching to a 2D array brought the runtime down
+to well under a second.
+</p>
+
+<p>
+The final bottleneck was in trying to find the next target using
+<code>Seq.tryFind</code>. Switching to a <code>while</code>-loop with a mutable flag for an early
+abort brought the runtime down to about 250ms.
+</p>
+
+<p>
+<code>addSand</code> now looks like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">addSand</span> (<span class="org-variable-name">rocksA</span>: <span class="org-type">bool[</span>,]) <span class="org-variable-name">threshold</span> (<span class="org-variable-name">atX</span>, <span class="org-variable-name">atY</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">targets</span> = [| [|atX; atY + 1|]; [|atX - 1; atY + 1|]; [|atX + 1; atY + 1|] |]
+    <span class="org-keyword">if</span> atY &gt;= threshold || rocksA[500,0] <span class="org-keyword">then</span> <span class="org-keyword">false</span>
+    <span class="org-keyword">else</span>
+        <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">found</span> = <span class="org-keyword">false</span>
+        <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">i</span> = 0
+        <span class="org-keyword">while</span> <span class="org-keyword">not</span> found &amp;&amp; i &lt; 3 <span class="org-keyword">do</span>
+            found &lt;- <span class="org-keyword">not</span> rocksA[targets[i][0],targets[i][1]]
+            <span class="org-keyword">if</span> <span class="org-keyword">not</span> found <span class="org-keyword">then</span> i &lt;- i + 1
+
+        <span class="org-keyword">if</span> found <span class="org-keyword">then</span> addSand rocksA threshold (targets[i][0],targets[i][1])
+        <span class="org-keyword">else</span> Array2D.set rocksA atX atY <span class="org-keyword">true</span>; <span class="org-keyword">true</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org61c33ab" class="outline-3">
+<h3 id="org61c33ab">Changing the algorithm</h3>
+<div class="outline-text-3" id="text-org61c33ab">
+<p>
+We can push even further by realizing that we don't have to simulate every grain
+of sand individually. Since we <i>know</i> that we will end at <code>500,0</code> and that every
+reachable spot from there <i>will</i> be filled, we can just visit every spot that
+wasn't already occupied and count them.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">addSand</span> (<span class="org-variable-name">rocksA</span>: <span class="org-type">bool[</span>,]) <span class="org-variable-name">threshold</span> (<span class="org-variable-name">atX</span>, <span class="org-variable-name">atY</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">targets</span> = [| [|atX; atY + 1|]; [|atX - 1; atY + 1|]; [|atX + 1; atY + 1|] |]
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">count</span> = 0
+    <span class="org-keyword">if</span> <span class="org-keyword">not</span> (atY &gt;= threshold || rocksA[500,0]) <span class="org-keyword">then</span>
+        <span class="org-keyword">for</span> i = 0 <span class="org-keyword">to</span> 2 <span class="org-keyword">do</span>
+            <span class="org-keyword">if</span> <span class="org-keyword">not</span> rocksA[targets[i][0],targets[i][1]] <span class="org-keyword">then</span> 
+                    count &lt;- count + (addSand rocksA threshold (targets[i][0],targets[i][1]))
+    Array2D.set rocksA atX atY <span class="org-keyword">true</span>
+    count + 1
+</pre>
+</div>
+
+<p>
+We can then return the result of <code>addSand rocksA low (500, 0)</code>. This runs in
+about 15ms.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org02298b3" class="outline-2">
+<h2 id="org02298b3">Reflection</h2>
+<div class="outline-text-2" id="text-org02298b3">
+<p>
+Today's problem wasn't very difficult. It was, however, fun to write. Finding
+out that the solution for part 2 was so slow was disheartening and making it
+quicker was a fun exercise.
+</p>
+
+<p>
+I'll probably be improving performance on more problems as we progress to the
+harder part of Advent of Code. It'll be interesting to see if I can stay away
+from mutable code while pushing performance, though.
+</p>
+
+<p>
+On to the next one!
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day14.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

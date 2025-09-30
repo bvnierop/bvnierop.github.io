@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 05</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 05</h1>
+<p class="subtitle">Dec 05, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-orgcc843c5" class="outline-2">
+<h2 id="orgcc843c5">Day 05: Supply Stacks</h2>
+<div class="outline-text-2" id="text-orgcc843c5">
+<p>
+Summary: Given a number of stacks of crates and a list of moves in the form
+<i>move N from X to Y</i>, determine which crates are on top of each stack after
+performing all the moves.
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">    [D]    
+[N] [C]    
+[Z] [M] [P]
+ 1   2   3 
+
+move 1 from 2 to 1
+move 3 from 1 to 3
+move 2 from 2 to 1
+move 1 from 1 to 2
+</pre>
+</div>
+
+<p>
+Crates can only be moved one at a time, so moving a set of N crates will put
+them on top of another stack in reverse order.
+</p>
+
+<p>
+Find the full description <a href="https://adventofcode.com/2022/day/5">here</a>.
+</p>
+
+<p>
+Yesterday I talked about parsing being cumbersome in some Advent of Code
+problems and how I <i>wanted</i> to look into a parser combinator to make parsing
+easier, but didn't.
+</p>
+
+<p>
+At least half of today's problem is a parsing problem. The input is nice and
+visual, but annoying to parse.
+</p>
+</div>
+
+<div id="outline-container-orgca64913" class="outline-3">
+<h3 id="orgca64913">Parsing the input</h3>
+<div class="outline-text-3" id="text-orgca64913">
+<p>
+The input can be separated into two parts. Moves and crates. Starting with the
+easier one, moves, we see how <code>scanf</code>-like parsing would be very nice
+here. Alas, it doesn't exist in F#. A hackier solution is to split each line
+into words, convert them to integers (which will fail for the words), select only
+the ones for which conversion succeeds and put them into a nice data structure.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">Move</span> = {
+    Count: <span class="org-type">int</span>;
+    Src: <span class="org-type">int</span>;
+    Dst: <span class="org-type">int</span>;
+}
+
+<span class="org-keyword">let</span> <span class="org-function-name">parseMoveLine</span> (<span class="org-variable-name">line</span>: <span class="org-type">string</span>) =
+    <span class="org-keyword">match</span> line.Split(<span class="org-string">" "</span>) <span class="org-fsharp-ui-operator">|&gt;</span> Array.choose parseIntOpt <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> [|count;src;dst|] -&gt; { Count = count; Src = src - 1; Dst = dst - 1 }
+    <span class="org-fsharp-ui-operator">|</span> _ -&gt; failwith $<span class="org-string">"Failed to parse move line: {line}"</span>
+</pre>
+</div>
+
+<p>
+The crates are more annoying, mostly because not all stacks have the same
+height. You cannot visually <i>see</i> it, but thankfully the lines with missing
+crates <i>are not truncated</i>. They have the same length as the other lines.
+</p>
+
+<p>
+Each spot is represented by three characters. A missing crate is represented by
+three spaces. A crate has the form <code>[identifier]</code> and finally a stack identifier
+is just a number surrounded by spaces. We don't have to parse the stack
+identifiers, but we also won't run into any problems if we just identify them as
+crates.
+</p>
+
+<p>
+Each of the individual pieces is separated from the others with a space. There
+are various ways to hack together a parser for this. My way was to replace the
+three spaces representing an empty crate with <code>[-]</code>, then remove all occurrences
+of <code>[</code> and <code>]</code> and finally split on space, removing empty entries.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">parseContainerLine</span> (<span class="org-variable-name">line</span>: <span class="org-type">string</span>) =
+    line.Replace(<span class="org-string">"    "</span>, <span class="org-string">" [-]"</span>)
+        .Replace(<span class="org-string">"["</span>, <span class="org-string">" "</span>)
+        .Replace(<span class="org-string">"]"</span>, <span class="org-string">" "</span>)
+        .Split(<span class="org-string">" "</span>, StringSplitOptions.RemoveEmptyEntries)
+</pre>
+</div>
+
+<p>
+We aren't there yet. This gives us <i>horizontal</i> lists of crates, but we need
+vertical ones. Taking a hint from myself from earlier this Advent of Code <i>and</i>
+wanting to move on to solve the actual problem I hacked something together with
+mutation. I determined the amount of stacks, made an array of that width seeded
+with empty lists and built the stacks one line at a time. We have to start at
+the last line, because we want the tops to be the heads of the list.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">parseContainerLines</span> (<span class="org-variable-name">lines</span>: <span class="org-type">string list</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">asSegments</span> = lines <span class="org-fsharp-ui-operator">|&gt;</span> List.map parseContainerLine
+    <span class="org-keyword">let</span> <span class="org-variable-name">len</span> = Array.length asSegments[0]
+    <span class="org-keyword">let</span> <span class="org-variable-name">stacks</span> = Array.init len (<span class="org-keyword">fun</span> <span class="org-variable-name">_</span> -&gt; [])
+    <span class="org-keyword">let</span> <span class="org-variable-name">filledStacks</span> =
+        List.foldBack (<span class="org-keyword">fun</span> (<span class="org-variable-name">elt</span>: <span class="org-type">string array</span>) <span class="org-variable-name">stacks</span> -&gt;
+            <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">x</span> = stacks
+            <span class="org-keyword">for</span> i = 0 <span class="org-keyword">to</span> len - 1 <span class="org-keyword">do</span>
+                x &lt;- (Array.updateAt i (elt[i] :: stacks[i]) x)
+            x) asSegments stacks
+    Array.map (List.reject ((=) <span class="org-string">"-"</span>)) filledStacks
+</pre>
+</div>
+
+<p>
+Not pretty, but it works. We have to end by removing the crates with <code>"-"</code> as
+their identifier, because those were used as placeholders for missing crates.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org8b1c833" class="outline-3">
+<h3 id="org8b1c833">Solving the problem</h3>
+<div class="outline-text-3" id="text-org8b1c833">
+<p>
+With the parsing solved we can now solve the problem: perform moves on the
+stacks of crates in order to determine which crates end up on top of each stack
+after the set of moves has been completed.
+</p>
+
+<p>
+Lists in F# behave like stacks. It's cheap to add/remove items at the
+front. Since the problem statement says that we can only move one crate at a
+time, that's exactly what we do. We take the first item of the source stack and
+prepend it to the destination stack. Once again with mutation because I couldn't
+really wrap my head around mapping / folding.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">step</span> (<span class="org-variable-name">move</span>: <span class="org-type">Move</span>) (<span class="org-variable-name">stacks</span>: <span class="org-type">string list array</span>) =
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">newStacks</span> = stacks
+    <span class="org-keyword">for</span> i = 0 <span class="org-keyword">to</span> move.Count - 1 <span class="org-keyword">do</span>
+        <span class="org-keyword">let</span> <span class="org-variable-name">container</span> = List.head newStacks[move.Src]
+        newStacks &lt;- Array.updateAt move.Dst (container :: newStacks[move.Dst]) newStacks
+        newStacks &lt;- Array.updateAt move.Src (List.tail newStacks[move.Src]) newStacks
+    newStacks
+</pre>
+</div>
+
+<p>
+Getting the tops and glueing it all together is an exercise for the reader.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgba56240" class="outline-2">
+<h2 id="orgba56240">Part 2</h2>
+<div class="outline-text-2" id="text-orgba56240">
+<p>
+Summary: Instead of only being able to move one crate at a time, for part two we
+have to move the amount of crates in every instruction simultaneously, in order.
+</p>
+
+<p>
+That's a small change that actually simplifies the <code>step</code> function. Since we
+have to preserve the order we can do it in one step, taking N items from the
+head of the source stack and prepending them to the destination stack.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">step2</span> (<span class="org-variable-name">move</span>: <span class="org-type">Move</span>) (<span class="org-variable-name">stacks</span>: <span class="org-type">string list array</span>) =
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">newStacks</span> = stacks
+    <span class="org-keyword">let</span> <span class="org-variable-name">containers</span> = List.take move.Count newStacks[move.Src]
+    newStacks &lt;- Array.updateAt move.Src (List.skip move.Count newStacks[move.Src]) newStacks
+    newStacks &lt;- Array.updateAt move.Dst (List.append containers newStacks[move.Dst]) newStacks
+    newStacks
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgb5c539e" class="outline-2">
+<h2 id="orgb5c539e">Improvements</h2>
+<div class="outline-text-2" id="text-orgb5c539e">
+<p>
+Everything done, almost all of it sucks in my opinion. It's hacky, ugly and full
+of mutation. The goal is achieved. Scoring stars is more important than nice
+code, but I'm also here to learn. So let's improve, shall we?
+</p>
+</div>
+
+<div id="outline-container-orgf73dec3" class="outline-3">
+<h3 id="orgf73dec3">Merge the two <code>step</code> functions</h3>
+<div class="outline-text-3" id="text-orgf73dec3">
+<p>
+The loop in the first <code>step</code> function may hide it, but <code>step</code> and <code>step2</code> are
+nearly identical. We can remove the loop from <code>step</code> and instead reverse the set
+of N crates taken from the front of the source list.
+</p>
+
+<p>
+If the only difference is <i>reverse or not reverse</i> we can turn <code>step</code> into a
+higher order function, passing a transformation function as we go.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">step</span> <span class="org-variable-name">reorder</span> (<span class="org-variable-name">move</span>: <span class="org-type">Move</span>) (<span class="org-variable-name">stacks</span>: <span class="org-type">string list array</span>) =
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">newStacks</span> = stacks
+    <span class="org-keyword">let</span> <span class="org-variable-name">containers</span> = List.take move.Count newStacks[move.Src] <span class="org-fsharp-ui-operator">|&gt;</span> reorder
+    newStacks &lt;- Array.updateAt move.Src (List.skip move.Count newStacks[move.Src]) newStacks
+    newStacks &lt;- Array.updateAt move.Dst (List.append containers newStacks[move.Dst]) newStacks
+    newStacks
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org766227e" class="outline-3">
+<h3 id="org766227e">Remove mutation</h3>
+<div class="outline-text-3" id="text-org766227e">
+<p>
+The worst offenders are <code>step</code> and <code>parseContainerLines</code>, but I also had
+mutation in my original <code>solve</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve1</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    <span class="org-keyword">let</span> (<span class="org-variable-name">stacks</span>, <span class="org-variable-name">moves</span>) = parseInput input
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">mutableStacks</span> = stacks
+    <span class="org-keyword">for</span> move <span class="org-keyword">in</span> moves <span class="org-keyword">do</span>
+        mutableStacks &lt;- step move mutableStacks
+    getTopOfStacks mutableStacks
+</pre>
+</div>
+
+<p>
+We begin by removing the mutation in <code>step</code>. While we're at it, we will also
+reorder the arguments so that we can pass <code>step</code> as an argument to
+<code>List.fold</code>. That way we can also fix the mutation in <code>solve</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">step</span> <span class="org-variable-name">reorder</span> (<span class="org-variable-name">stacks</span>: <span class="org-type">string list array</span>) <span class="org-variable-name">move</span> =
+    <span class="org-keyword">let</span> <span class="org-variable-name">containers</span> = List.take move.Count stacks[move.Src] <span class="org-fsharp-ui-operator">|&gt;</span> reorder
+    stacks
+    <span class="org-fsharp-ui-operator">|&gt;</span> Array.updateAt move.Src (List.skip move.Count stacks[move.Src])
+    <span class="org-fsharp-ui-operator">|&gt;</span> Array.updateAt move.Dst (List.append containers stacks[move.Dst])
+
+[&lt;AocSolver(2022, 5, Level = 1)&gt;]
+<span class="org-keyword">let</span> <span class="org-function-name">solve1</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    <span class="org-keyword">let</span> (<span class="org-variable-name">stacks</span>, <span class="org-variable-name">moves</span>) = parseInput input
+    moves
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.fold step stacks
+    <span class="org-fsharp-ui-operator">|&gt;</span> getTopOfStacks
+</pre>
+</div>
+
+<p>
+Like many <code>for</code>-loops and a mutating variable, we can get rid of that in
+<code>parseContainerLines</code> by transforming it into a <code>List.fold</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">parseContainerLines</span> (<span class="org-variable-name">lines</span>: <span class="org-type">string list</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">asSegments</span> = lines <span class="org-fsharp-ui-operator">|&gt;</span> List.map parseContainerLine
+    <span class="org-keyword">let</span> <span class="org-variable-name">len</span> = Array.length asSegments[0]
+    <span class="org-keyword">let</span> <span class="org-variable-name">stacks</span> = Array.init len (<span class="org-keyword">fun</span> <span class="org-variable-name">_</span> -&gt; [])
+    <span class="org-keyword">let</span> <span class="org-variable-name">filledStacks</span> =
+        List.foldBack (<span class="org-keyword">fun</span> (<span class="org-variable-name">elt</span>: <span class="org-type">string array</span>) <span class="org-variable-name">stacks</span> -&gt;
+            [0..len-1]
+            <span class="org-fsharp-ui-operator">|&gt;</span> List.fold (<span class="org-keyword">fun</span> <span class="org-variable-name">stacks</span> <span class="org-variable-name">i</span> -&gt; Array.updateAt i (elt[i] :: stacks[i]) stacks) stacks)
+            asSegments stacks
+    Array.map (List.reject ((=) <span class="org-string">"-"</span>)) filledStacks
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org28ef429" class="outline-3">
+<h3 id="org28ef429">Discover <code>List.transpose</code></h3>
+<div class="outline-text-3" id="text-org28ef429">
+<p>
+It turns out that F# has a built-in function for transposing a list of
+lists. It's conveniently called <code>transpose</code> and makes our life a lot easier.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">parseContainerLines</span> (<span class="org-variable-name">lines</span>: <span class="org-type">string list</span>) =
+    lines
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map parseContainerLine
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.transpose
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.toArray
+    <span class="org-fsharp-ui-operator">|&gt;</span> Array.map (List.reject ((=) <span class="org-string">"-"</span>))
+</pre>
+</div>
+
+<p>
+Gone is the nested unreadable fold.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgbde2514" class="outline-3">
+<h3 id="orgbde2514">Parser combinator</h3>
+<div class="outline-text-3" id="text-orgbde2514">
+<p>
+The above changes make the code a lot better, but all things considered the
+parsing code is still hacky. We can do better. And we should.
+</p>
+
+<p>
+<a href="https://www.quanttec.com/fparsec/">FParsec</a> is a parser combinator library for F# and we'll use it to make the
+parsing for this problem significantly nicer.
+</p>
+
+<p>
+Once again, the input consists of two parts. This time we'll work top to bottom.
+</p>
+</div>
+
+<div id="outline-container-org79511bf" class="outline-4">
+<h4 id="org79511bf">Parsing crates</h4>
+<div class="outline-text-4" id="text-org79511bf">
+<p>
+As observed above, each crate is either represented by three spaces or by
+<code>[identifer]</code> or for the last line that we don't care about, by a number
+surrounded by spaces.
+</p>
+
+<p>
+We'll write a parser for a single crate that returns <code>None</code> for a missing crate
+and <code>Some identifier</code> for crates.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">parseEmptyCrate</span> = pstring <span class="org-string">"   "</span> &gt;&gt;% None
+<span class="org-keyword">let</span> <span class="org-variable-name">parseSingleCrate</span> = (skipAnyChar &gt;&gt;. anyString 1 .&gt;&gt; skipAnyChar) <span class="org-fsharp-ui-generic">|&gt;&gt;</span> Some
+<span class="org-keyword">let</span> <span class="org-variable-name">parseCrate</span> = parseEmptyCrate <span class="org-fsharp-ui-generic">&lt;|&gt;</span> parseSingleCrate
+</pre>
+</div>
+
+<p>
+The <code>&gt;&gt;%</code> operator runs the parser before it and returns the result of the
+function after. The <code>&lt;|&gt;</code> operator parses one or the other.
+</p>
+
+<p>
+The <code>.&gt;&gt;</code>, <code>&gt;&gt;.</code> and <code>.&gt;&gt;.</code> operators combine the parsers around them. The
+period (<code>.</code>) indicates that the result on that side will be returned. The other
+result will be ignored.
+</p>
+
+<p>
+With the parser for a single crate done, let's extend it to a full line. Since
+we no longer convert missing crates to <code>[-]</code> we need a slightly different
+function to form our stacks. <code>List.choose</code> discards any elements that are <code>None</code>
+so it leaves us with only existing crates.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">cratesToStacks</span> <span class="org-variable-name">crates</span> =
+    crates
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.transpose
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (List.choose id)
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.toArray
+
+<span class="org-keyword">let</span> <span class="org-variable-name">parseCrates</span> = sepBy parseCrate (pchar <span class="org-string">' '</span>)
+<span class="org-keyword">let</span> <span class="org-variable-name">parseCrateLine</span> = parseCrates .&gt;&gt; skipNewline
+<span class="org-keyword">let</span> <span class="org-variable-name">parseStacks</span> = (manyTill parseCrateLine newline) <span class="org-fsharp-ui-generic">|&gt;&gt;</span> cratesToStacks
+</pre>
+</div>
+
+<p>
+<code>manyTill</code> runs the first parser many times, until the second parser
+passes. When it does, it's consumed. This means that the newline separating the
+crates and the commands is consumed by <code>parseStacks</code>.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org7facc88" class="outline-4">
+<h4 id="org7facc88">Parsing commands</h4>
+<div class="outline-text-4" id="text-org7facc88">
+<p>
+Parsing a single move is a bit more verbose than I'd like, still not beating the
+<code>scanf</code>-like syntax that I prefer, but it <i>is</i> very straight forward. <code>pipe3</code>
+takes three parsers as arguments, performs them in succession and calls the
+provided function with the results. We use it to build the same <code>Move</code> type as
+before.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">parseMove</span> =
+    pipe3 (skipString <span class="org-string">"move "</span> &gt;&gt;. pint32)
+          (skipString <span class="org-string">" from "</span> &gt;&gt;. pint32)
+          (skipString <span class="org-string">" to "</span> &gt;&gt;. pint32)
+          (<span class="org-keyword">fun</span> <span class="org-variable-name">a</span> <span class="org-variable-name">b</span> <span class="org-variable-name">c</span> -&gt; {Count = a; Src = b - 1; Dst = c - 1})
+</pre>
+</div>
+
+<p>
+Parsing a line with a command is slightly more involved than for crates because
+the input file <i>does not end with a newline</i>. Therefore a line containing a
+command can end either with a newline <i>or</i> with eof.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">parseMoveLine</span> = parseMove .&gt;&gt; (skipNewline <span class="org-fsharp-ui-generic">&lt;|&gt;</span> eof)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgc7e5fb7" class="outline-4">
+<h4 id="orgc7e5fb7">Parsing the full input</h4>
+<div class="outline-text-4" id="text-orgc7e5fb7">
+<p>
+Bringing it all together we parse both the stacks and many commands.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">parseInput</span> =  parseStacks .&gt;&gt;. many parseMoveLine
+</pre>
+</div>
+
+<p>
+The result of running this parser is the same as the original parse function, so
+no other code has to change.
+</p>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org2af4bae" class="outline-2">
+<h2 id="org2af4bae">Reflection</h2>
+<div class="outline-text-2" id="text-org2af4bae">
+<p>
+Today was a very hacky day with a lot of ugly code and annoying parsing. It took
+quite some effort to clean it all up. More than I'd like. But I'm happy with the
+final result.
+</p>
+
+<p>
+I learned about a parser combinator framework. Discovered <code>List.transpose</code> and
+got some more practice in refactoring away <code>for</code>-loops and mutation.
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day05.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

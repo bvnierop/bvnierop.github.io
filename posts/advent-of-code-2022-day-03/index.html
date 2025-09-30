@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 03</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 03</h1>
+<p class="subtitle">Dec 03, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-org61f262d" class="outline-2">
+<h2 id="org61f262d">Day 03: Rucksack Reorganisation</h2>
+<div class="outline-text-2" id="text-org61f262d">
+<p>
+Summary: Given a list of strings, for each string find which characters are
+common to both the left half and the right half of the string. Convert those
+characters to a priority, <code>[a..z]</code> having priority <code>1..26</code> and <code>[A..Z]</code> having
+priority <code>27..52</code>. Sum the priorites.
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">aAccbB
+BbaacC
+</pre>
+</div>
+
+<p>
+In the string <code>aAccbB</code> the character <code>c</code> occurs on both sides. It has priority 3
+points. In <code>BbaacC</code> the character <code>a</code> occurs on both sides. It has
+priority 1. Summing those priorities results in <code>4</code>.
+</p>
+
+<p>
+Find the full description <a href="https://adventofcode.com/2022/day/3">here</a>.
+</p>
+
+<p>
+Some of the built-ins in F# make this problem relatively easy. Splitting a
+string exactly in half can be done by treating it as a list of characters and
+then using <code>List</code>'s <code>splitInto</code> function which splits a list into <code>n</code> equal
+parts.
+</p>
+
+<p>
+F# also has set operations built-in, which we can use to determine which
+character appears on both sides. Convert each side to a set and find the
+intersection.
+</p>
+
+<p>
+We can then convert the intersection to priorities and sum them.
+</p>
+
+<p>
+There's a small twist in the conversion to priorities. Typical programming
+problems that make you convert characters to integers, do so in ASCII order. In
+ASCII order, however, <code>[a-z]</code> comes after <code>[A-Z]</code>. So rather than going for the
+obvious (but wrong in this case) <code>Convert.ToInt32(chr) - Convert.ToInt32('A') +
+1</code> we have to check if the character is lowercase and math based on that.
+</p>
+
+<p>
+All together, this is what it can look like. A very straight forward list of
+steps. It does the trick, but I don't like all the occurrences of <code>List.map</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">convertToPrio</span> <span class="org-variable-name">itemType</span> =
+    <span class="org-keyword">if</span> Char.IsLower itemType <span class="org-keyword">then</span> Convert.ToInt32(itemType) - Convert.ToInt32(<span class="org-string">'a'</span>) + 1
+    <span class="org-keyword">else</span> Convert.ToInt32(itemType) - Convert.ToInt32(<span class="org-string">'A'</span>) + 27
+
+<span class="org-keyword">let</span> <span class="org-function-name">solve1</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    input
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map List.ofSeq
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (List.splitInto 2)
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (List.map Set.ofList)
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map Set.intersectMany
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map Set.toList
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (List.map convertToPrio)
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map List.sum
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.sum
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org97cca0f" class="outline-2">
+<h2 id="org97cca0f">Part 2</h2>
+<div class="outline-text-2" id="text-org97cca0f">
+<p>
+Summary: In part two we have to take the list of strings and form groups of
+three. For each we have to find which character occurs in all three
+strings. Then we have to sum the same priority conversion for each group.
+</p>
+
+<p>
+The idea is the same as part 1. We convert the strings into sets and find their
+intersection. Then we convert the intersection to priorities and sum them.
+</p>
+
+<p>
+F#'s <code>Set.intersectMany</code> takes an arbitrary number of sets so once again the
+language helps us.
+</p>
+
+<p>
+Feeling like there must be a better way than writing all those <code>List.map</code>'s, I
+grouped a few of them a single function.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve2</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    input
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map List.ofSeq
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map Set.ofList
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.chunkBySize 3
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (<span class="org-keyword">fun</span> <span class="org-variable-name">group</span> -&gt;
+        group
+        <span class="org-fsharp-ui-operator">|&gt;</span> Set.intersectMany
+        <span class="org-fsharp-ui-operator">|&gt;</span> Set.toList
+        <span class="org-fsharp-ui-operator">|&gt;</span> List.map convertToPrio
+        <span class="org-fsharp-ui-operator">|&gt;</span> List.sum)
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.sum
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org06ce396" class="outline-2">
+<h2 id="org06ce396">Improvements</h2>
+<div class="outline-text-2" id="text-org06ce396">
+<p>
+Repeat after me: "<i>Strings are Sequences</i>." At least they are in F#. Which means
+that if you want to do something to the list of characters, rather than the
+string, you can use the <code>Seq</code> module without having to convert the string
+first. This may be obvious to many F# users, but wasn't to me. Instead, I would
+use <code>Seq.toList</code> first and then operate on the list.
+</p>
+
+<p>
+In this particular case that means we can skip <code>List.ofSeq</code> and instead
+immediately use <code>Set.ofSeq</code> for part 2. In part 1 we did slightly more, but
+there, too, we can simplify.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">input
+<span class="org-fsharp-ui-operator">|&gt;</span> List.map List.ofSeq
+<span class="org-fsharp-ui-operator">|&gt;</span> List.map (List.splitInto 2)
+<span class="org-fsharp-ui-operator">|&gt;</span> List.map (List.map Set.ofList)
+
+<span class="org-comment-delimiter">// </span><span class="org-comment">Becomes
+</span>
+input
+<span class="org-fsharp-ui-operator">|&gt;</span> List.map (Seq.splitInto 2)
+<span class="org-fsharp-ui-operator">|&gt;</span> List.map (Seq.map Set.ofSeq)
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org57b2db7" class="outline-3">
+<h3 id="org57b2db7">The <code>&gt;&gt;</code> operator</h3>
+<div class="outline-text-3" id="text-org57b2db7">
+<p>
+All those <code>List.maps</code>'s I wasn't happy about can also be simplified. the <code>&gt;&gt;</code>
+operator combines functions. <code>foo &gt;&gt; bar</code> returns a function that first executes
+<code>foo</code> and then calls <code>bar</code> with the result.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">input
+<span class="org-fsharp-ui-operator">|&gt;</span> List.map ((Seq.splitInto 2)
+             &gt;&gt; (Seq.map Set.ofSeq)
+             &gt;&gt; Set.intersectMany
+             &gt;&gt; Set.toList
+             &gt;&gt; (List.map convertToPrio)
+             &gt;&gt; List.sum)
+</pre>
+</div>
+
+<p>
+It still looks a bit icky, but it's a definite improvement.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org36d3954" class="outline-3">
+<h3 id="org36d3954">One final push</h3>
+<div class="outline-text-3" id="text-org36d3954">
+<p>
+The key insight to improving the code came to me a bit later. It wasn't obvious
+to me at first because I wrote both parts in a slightly different way, but both
+parts do <i>mostly</i> the same thing.
+</p>
+
+<p>
+Specifically, they convert a group of strings into sets of characters, finds
+their intersection, converts to priorities and sums them. The only difference is
+<i>how the groups of strings are formed</i>.
+</p>
+
+<p>
+In part 1 the groups are formed by taking each line and splitting it in half. In
+part 2 the groups are formed by taking groups of three lines.
+</p>
+
+<p>
+Knowing that we can write two helpers:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">formGroups</span> <span class="org-variable-name">formGroupFn</span> <span class="org-variable-name">lines</span> =
+    lines
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (Seq.map convertToPrio)
+    <span class="org-fsharp-ui-operator">|&gt;</span> formGroupFn
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (Seq.map Set.ofSeq)
+
+<span class="org-keyword">let</span> <span class="org-function-name">getSumOfIntersection</span> <span class="org-variable-name">groups</span> =
+    groups
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.map (Set.intersectMany &gt;&gt; Seq.sum)
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.sum
+</pre>
+</div>
+
+<p>
+<code>formGroups</code> takes the lines from the input and forms groups based on the
+function passed. For good measure it also converts to priorities. There's not
+really a reason not to do this.
+</p>
+
+<p>
+<code>getSumOfIntersections</code> does what its name implies. Note the use of the <code>&gt;&gt;</code>
+operator to prevent a second <code>Seq.map</code>.
+</p>
+
+<p>
+With these two helpers, the solutions become almost identical two-liners:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">[&lt;AocSolver(2022, 3, Level = 1)&gt;]
+<span class="org-keyword">let</span> <span class="org-function-name">solve1</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    input
+    <span class="org-fsharp-ui-operator">|&gt;</span> formGroups (List.map (Seq.splitInto 2))
+    <span class="org-fsharp-ui-operator">|&gt;</span> getSumOfIntersection
+
+[&lt;AocSolver(2022, 3, Level = 2)&gt;]
+<span class="org-keyword">let</span> <span class="org-function-name">solve2</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    input
+    <span class="org-fsharp-ui-operator">|&gt;</span> formGroups (List.chunkBySize 3)
+    <span class="org-fsharp-ui-operator">|&gt;</span> getSumOfIntersection
+</pre>
+</div>
+
+<p>
+Since they are nearly identical we could even abstract <i>that</i> away, but that
+hardly seems worth it.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org911ca89" class="outline-2">
+<h2 id="org911ca89">Reflection</h2>
+<div class="outline-text-2" id="text-org911ca89">
+<p>
+Today's problem was made relatively easy by the language. Writing out the steps
+and then converting them to code was almost a 1:1 translation. Trying to improve
+the look of the code in between solutions made it harder to refactor later
+because the obvious similarity dissapeared.
+</p>
+
+<p>
+Looking through other solutions later, I found few of them that were more to the
+point than my own. I expected big improvements to be possible, but in the end
+even extracting all duplicate logic saved but a few lines.
+</p>
+
+<p>
+I hope it stays this way for future problems. Usually my lack of language
+knowledge starts to get in the way after about day 10. So far this looks
+promising for this year.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 16: Proboscidea Volcanium</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 16: Proboscidea Volcanium</h1>
+<p class="subtitle">Dec 16, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-org68656c0" class="outline-2">
+<h2 id="org68656c0">Day 16: Proboscidea Volcanium</h2>
+<div class="outline-text-2" id="text-org68656c0">
+<p>
+Summary: Given a list of valves, their flow rates, and paths between them, how
+much pressure can you release in 30 minutes? Opening a valve or traveling a path
+takes 1 minute.
+</p>
+
+<p>
+Every minute after opening a valve the total pressure released by having opened
+it increased by the flow rate of that valve.
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">Valve AA has flow rate=0; tunnels lead to valves DD, II, BB
+Valve BB has flow rate=13; tunnels lead to valves CC, AA
+Valve CC has flow rate=2; tunnels lead to valves DD, BB
+Valve DD has flow rate=20; tunnels lead to valves CC, AA, EE
+Valve EE has flow rate=3; tunnels lead to valves FF, DD
+Valve FF has flow rate=0; tunnels lead to valves EE, GG
+Valve GG has flow rate=0; tunnels lead to valves FF, HH
+Valve HH has flow rate=22; tunnel leads to valve GG
+Valve II has flow rate=0; tunnels lead to valves AA, JJ
+Valve JJ has flow rate=21; tunnel leads to valve II
+</pre>
+</div>
+
+<p>
+All of the valves start closed. You start at valve <code>AA</code>.
+</p>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/16">here</a>.
+</p>
+
+<p>
+In order to find a solution we have to try every possible route. Now, attempting
+every possible step at every minute is too much work, even though the search
+tree is relatively sparse. We need some pruning.
+</p>
+
+<p>
+Instead of attempting every possible choice at every minute, we can also try
+every order of valves that have a flow rate larger than <code>0</code>. Opening a valve
+that has a flow rate of <code>0</code> makes no sense, so we won't waste any time on
+that. Both in the example input and in the real input, many valves have <code>0</code> flow
+rate.
+</p>
+
+<p>
+In order to determine how long it takes to move from any valve to any other
+valve, we can precompute the paths. To find the distances between all pairs of
+valves we can use the <a href="https://en.wikipedia.org/wiki/Floyd%E2%80%93Warshall_algorithm">Floyd-Warshall algorithm</a>, which works as long as there are
+no cycles with negative weights. Our graph has no negative weights at all, so
+that's fine.
+</p>
+
+<p>
+We'll store the distances between any two valves in a 2D array. To index it
+we'll use a lookup table to convert from valve tag to an integer index.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">makeLookup</span> <span class="org-variable-name">adj</span> =
+    adj <span class="org-fsharp-ui-operator">|&gt;</span> Map.keys <span class="org-fsharp-ui-operator">|&gt;</span> Seq.indexed
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.fold (<span class="org-keyword">fun</span> <span class="org-variable-name">lookup</span> (<span class="org-variable-name">i</span>, <span class="org-variable-name">tag</span>) -&gt; Map.add tag i lookup) Map.empty
+</pre>
+</div>
+
+<p>
+Making the lookup table requires an adjacency list, that we'll create from the
+input. The adjacency list will be a map, having the tag as key and a tuple with
+the flow rate and the possible destinations as a value.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">pTag</span> = anyString 2
+<span class="org-keyword">let</span> <span class="org-variable-name">pLine</span> =
+    skipString <span class="org-string">"Valve "</span> &gt;&gt;. pTag .&gt;&gt; skipString <span class="org-string">" has flow rate="</span>
+    .&gt;&gt;. (pint32 .&gt;&gt; (skipString <span class="org-string">"; tunnels lead to valves "</span> <span class="org-fsharp-ui-generic">&lt;|&gt;</span> skipString <span class="org-string">"; tunnel leads to valve "</span>)
+            .&gt;&gt;. sepBy pTag (pstring <span class="org-string">", "</span>))
+
+<span class="org-keyword">let</span> <span class="org-function-name">parseInput</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    input <span class="org-fsharp-ui-operator">|&gt;</span> List.map (parseOrDie pLine)
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.fold (<span class="org-keyword">fun</span> <span class="org-variable-name">map</span> (<span class="org-variable-name">tag</span>, <span class="org-variable-name">data</span>) -&gt; Map.add tag data map) Map.empty
+</pre>
+</div>
+
+<p>
+Given both the adjacency list and the lookup we can run Floyd-Warshall. We start
+by create an array that can hold every pair of valves, initiazing their
+distances to a value far greater than the maximum that is really possible.
+</p>
+
+<p>
+Then we set the distance from each valve to itself to <code>0</code>. Next we iterate over
+the entries in the adjacency list and set the distance for every known
+connection to <code>1</code>, as it takes 1 minute to move direct paths. Finally we look at
+every possible indirect path between two valves and if it's better than the path
+we already know, we store the new distance instead.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">floydWarshall</span> <span class="org-variable-name">adj</span> <span class="org-variable-name">lookup</span> =
+    <span class="org-keyword">let</span> <span class="org-variable-name">maxValue</span> = Map.values lookup <span class="org-fsharp-ui-operator">|&gt;</span> Seq.max
+    <span class="org-keyword">let</span> <span class="org-variable-name">dist</span> = Array2D.init (maxValue + 1) (maxValue + 1) (<span class="org-keyword">fun</span> <span class="org-variable-name">s</span> <span class="org-variable-name">d</span> -&gt; 100 * 100)
+    <span class="org-comment-delimiter">// </span><span class="org-comment">Set v -&gt; v to 0
+</span>    <span class="org-keyword">for</span> v = 0 <span class="org-keyword">to</span> maxValue <span class="org-keyword">do</span> dist[v,v] &lt;- 0
+
+    <span class="org-comment-delimiter">// </span><span class="org-comment">Set known distances
+</span>    adj <span class="org-fsharp-ui-operator">|&gt;</span> Map.iter (<span class="org-keyword">fun</span> <span class="org-variable-name">s</span> (<span class="org-variable-name">_</span>, <span class="org-variable-name">n</span>) -&gt;
+        <span class="org-keyword">for</span> d <span class="org-keyword">in</span> n <span class="org-keyword">do</span>
+            dist[lookup[s],lookup[d]] &lt;- 1)
+
+    <span class="org-comment-delimiter">// </span><span class="org-comment">Run FW
+</span>    <span class="org-keyword">for</span> k = 0 <span class="org-keyword">to</span> maxValue <span class="org-keyword">do</span>
+        <span class="org-keyword">for</span> i = 0 <span class="org-keyword">to</span> maxValue <span class="org-keyword">do</span>
+            <span class="org-keyword">for</span> j = 0 <span class="org-keyword">to</span> maxValue <span class="org-keyword">do</span>
+                dist[i,j] &lt;- min dist[i,j]
+                                 (dist[i,k] + dist[k,j])
+    dist
+</pre>
+</div>
+
+<p>
+The final thing we need in order to search the best path is a lookup for the
+pressures based on the integer id of each valve, rather than the tag.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">makePressureLookup</span> <span class="org-variable-name">adj</span> (<span class="org-variable-name">lookup</span>: <span class="org-type">Map</span><span class="org-fsharp-ui-generic">&lt;string, int&gt;</span>) =
+    adj <span class="org-fsharp-ui-operator">|&gt;</span> Map.fold (<span class="org-keyword">fun</span> <span class="org-variable-name">state</span> <span class="org-variable-name">valve</span> (<span class="org-variable-name">pressure</span>, <span class="org-variable-name">_</span>) -&gt;
+        Map.add lookup[valve] pressure state) Map.empty
+</pre>
+</div>
+
+<p>
+Now we can search. We must keep track of the time to see how much we have
+remaining, of the valves we have already opened so that we don't try to open
+valves twice, and finally of the total pressure we're releasing.
+</p>
+
+<p>
+At every step we'll find the next destination. It's a valve that has pressure
+(because opening a valve with <code>0</code> pressure is pointless) and that has not been
+opened before. Also we must be able to reach it in time. Note that subtracting
+<i>just</i> the distance from the time isn't enough, it also takes a minute to <i>open</i>
+the valve.
+</p>
+
+<p>
+We then keep the best score out of the current score and continuing to another
+valve.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">search</span> <span class="org-variable-name">from</span> <span class="org-variable-name">distances</span> (<span class="org-variable-name">pressures</span>: <span class="org-type">Map</span><span class="org-fsharp-ui-generic">&lt;int, int&gt;</span>) =
+    <span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">loop</span> <span class="org-variable-name">t</span> <span class="org-variable-name">at</span> <span class="org-variable-name">opened</span> <span class="org-variable-name">pressure</span> =
+        <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">bestScore</span> = pressure
+        <span class="org-keyword">for</span> d = 0 <span class="org-keyword">to</span> (Array2D.length1 distances) - 1 <span class="org-keyword">do</span>
+            <span class="org-keyword">let</span> <span class="org-variable-name">targetTime</span> = t - distances[at,d] - 1
+            <span class="org-keyword">if</span> <span class="org-keyword">not</span> <span class="org-fsharp-ui-operator">&lt;|</span> Set.contains d opened &amp;&amp; pressures[d] &gt; 0 &amp;&amp; targetTime &gt;= 0 <span class="org-keyword">then</span>
+                bestScore &lt;- max bestScore
+                                    (loop <span class="org-fsharp-ui-operator">&lt;|</span> t - distances[at,d] - 1 <span class="org-fsharp-ui-operator">&lt;|</span> d <span class="org-fsharp-ui-operator">&lt;|</span> Set.add d opened <span class="org-fsharp-ui-operator">&lt;|</span> pressure + (targetTime * pressures[d]))
+        bestScore
+    loop 30 from Set.empty 0
+</pre>
+</div>
+
+<p>
+Putting it all together:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve1</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">adj</span> = input <span class="org-fsharp-ui-operator">|&gt;</span> parseInput
+    <span class="org-keyword">let</span> <span class="org-variable-name">lookup</span> = makeLookup adj
+    <span class="org-keyword">let</span> <span class="org-variable-name">distances</span> = floydWarshall adj lookup
+    <span class="org-keyword">let</span> <span class="org-variable-name">pressureLookup</span> = makePressureLookup adj lookup
+    search lookup[<span class="org-string">"AA"</span>] distances pressureLookup
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org9773c68" class="outline-2">
+<h2 id="org9773c68">Part 2</h2>
+<div class="outline-text-2" id="text-org9773c68">
+<p>
+Summary: You're not alone at this system of tunnels and valves. There is also a
+group of elephants. You can spend four minutes to <i>train an elephant to help
+you</i>. Now there's two of you, but you have only 26 minutes.
+</p>
+
+<p>
+What is the maximum pressure you can release?
+</p>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/16#part2">here</a> (only if you solved part 1).
+</p>
+
+<p>
+The key observation here is that you don't have to run the simulation for
+yourself and the elephant simultaneously. They can run independent of one
+another.
+</p>
+
+<p>
+The <i>simple</i> but slow way to find the answer is to, for each possible solution,
+tack on a second run and then find the best one. On my machine this takes a good
+17 minutes for my input, but it's a solution.
+</p>
+
+<p>
+We add a boolean to our loop that keeps track of if this is the run for the
+elephant or for ourselves. Then every time we loop we take the current answer
+and add a run for the elephant to it. At the end we take the best answer.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">dfs</span> <span class="org-variable-name">from</span> <span class="org-variable-name">distances</span> (<span class="org-variable-name">pressures</span>: <span class="org-type">Map</span><span class="org-fsharp-ui-generic">&lt;int, int&gt;</span>) =
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">answers</span> = Set.empty
+    <span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">loop</span> <span class="org-variable-name">t</span> <span class="org-variable-name">at</span> <span class="org-variable-name">opened</span> <span class="org-variable-name">elephant</span> <span class="org-variable-name">pressure</span> =
+        <span class="org-keyword">if</span> <span class="org-keyword">not</span> elephant <span class="org-keyword">then</span>
+            answers &lt;- answers <span class="org-fsharp-ui-operator">|&gt;</span> HashSet.add (pressure + (loop 26 from opened <span class="org-keyword">true</span> 0))
+
+        <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">bestScore</span> = pressure
+        <span class="org-keyword">for</span> d = 0 <span class="org-keyword">to</span> (Array2D.length1 distances) - 1 <span class="org-keyword">do</span>
+            <span class="org-keyword">let</span> <span class="org-variable-name">targetTime</span> = t - distances[at,d] - 1
+            <span class="org-keyword">if</span> <span class="org-keyword">not</span> <span class="org-fsharp-ui-operator">&lt;|</span> Set.contains d opened &amp;&amp; pressures[d] &gt; 0 &amp;&amp; targetTime &gt;= 0 <span class="org-keyword">then</span>
+                bestScore &lt;- max bestScore
+                                    (loop <span class="org-fsharp-ui-operator">&lt;|</span> t - distances[at,d] - 1 <span class="org-fsharp-ui-operator">&lt;|</span> d <span class="org-fsharp-ui-operator">&lt;|</span> Set.add d opened <span class="org-fsharp-ui-operator">&lt;|</span> elephant <span class="org-fsharp-ui-operator">&lt;|</span> pressure + (targetTime * pressures[d]))
+        bestScore
+    loop 26 from Set.empty <span class="org-keyword">false</span> 0 <span class="org-fsharp-ui-operator">|&gt;</span> ignore
+    answers <span class="org-fsharp-ui-operator">|&gt;</span> Set.maxElement
+</pre>
+</div>
+</div>
+
+<div id="outline-container-orge0e69d0" class="outline-3">
+<h3 id="orge0e69d0">We can do better</h3>
+<div class="outline-text-3" id="text-orge0e69d0">
+<p>
+There's a better way to do this. It requires a <i>bit of magic</i>, but it's a <i>lot</i>
+faster.
+</p>
+
+<p>
+At the beginning we observed that we don't have to run both ourselved and the
+elephant together. But we also don't have to run one after the other.
+</p>
+
+<p>
+Let's look at our original solution. Instead of keeping track of the best
+result, we can keep track of every configuration of opened valves and the
+highest amount of pressure we can release with those valves opened.
+</p>
+
+<p>
+We can then take the best possible route, note which valves we opened and select
+a route that opened <i>none of those</i> and assign that route to the elephant. We
+can now combine the released pressure of those two routes for the result.
+</p>
+
+<p>
+But how do we find the <i>best</i> combination of routes that have no common valves.
+</p>
+
+<p>
+One way to do this is to encode which valves were opened as a bitmask. The input
+has around 40 valves, so an <code>int64</code> should do it. We are already representing
+valves as integers. We can use that integer as the index for the bit to set.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">openedToBitSet</span> <span class="org-variable-name">opened</span> =
+    opened <span class="org-fsharp-ui-operator">|&gt;</span> Seq.fold (<span class="org-keyword">fun</span> <span class="org-variable-name">bitSet</span> <span class="org-variable-name">i</span> -&gt; bitSet ||| (1L &lt;&lt;&lt; i)) 0L
+</pre>
+</div>
+
+<p>
+We'll use that bitmask to keep track of all routes, with a tiny helper to update
+a route. We must update routes because the order in which the same valves are
+opened makes a difference for the total amount of pressure released.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">routes</span> = Map.empty&lt;int64, int&gt;
+
+<span class="org-keyword">let</span> <span class="org-function-name">updateRoutes</span> (<span class="org-variable-name">bitset</span>: <span class="org-type">int64</span>) (<span class="org-variable-name">pressure</span>: <span class="org-type">int</span>) =
+    routes &lt;- Map.change bitset (<span class="org-keyword">function</span>
+                                                         <span class="org-fsharp-ui-operator">|</span> None -&gt; Some pressure
+                                 <span class="org-fsharp-ui-operator">|</span> Some e -&gt; Some (max e pressure)) routes
+</pre>
+</div>
+
+<p>
+This time when we loop, after every choice we save the result, because it's a
+<i>potential</i> route. We ignore the result of the loop because it's useless.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">loop</span> <span class="org-variable-name">t</span> <span class="org-variable-name">at</span> <span class="org-variable-name">opened</span> <span class="org-variable-name">pressure</span> =
+    updateRoutes (openedToBitSet opened) pressure
+
+    <span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">bestScore</span> = pressure
+    <span class="org-keyword">for</span> d = 0 <span class="org-keyword">to</span> (Array2D.length1 distances) - 1 <span class="org-keyword">do</span>
+        <span class="org-keyword">let</span> <span class="org-variable-name">targetTime</span> = t - distances[at,d] - 1
+        <span class="org-keyword">if</span> <span class="org-keyword">not</span> <span class="org-fsharp-ui-operator">&lt;|</span> Set.contains d opened &amp;&amp; pressures[d] &gt; 0 &amp;&amp; targetTime &gt;= 0 <span class="org-keyword">then</span>
+            bestScore &lt;- max bestScore
+                                (loop <span class="org-fsharp-ui-operator">&lt;|</span> t - distances[at,d] - 1 <span class="org-fsharp-ui-operator">&lt;|</span> d <span class="org-fsharp-ui-operator">&lt;|</span> Set.add d opened <span class="org-fsharp-ui-operator">&lt;|</span> pressure + (targetTime * pressures[d]))
+    bestScore
+loop 26 from Set.empty 0 <span class="org-fsharp-ui-operator">|&gt;</span> ignore
+</pre>
+</div>
+
+<p>
+Now we need to find the best <i>combination of routes</i>. We start by identifying
+another bitmask. This one represents the valves that, at the beginning, have a
+pressure larger than 0 and therefore have to be opened.
+</p>
+
+<p>
+Next we look at each entry in the stored routes. Remember that these are bitmask
+representing the opened valves. <i>If</i> a route exists that opened all the valves
+that our route did not open, it's the <code>eXclusive bitwise OR</code> of the valves our
+route opened and all valves that have to be opened.
+</p>
+
+<p>
+We can then check that that route exists, and if it does, combine the
+results. The best such combination is what we're after.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">mask</span> = Map.keys pressures <span class="org-fsharp-ui-operator">|&gt;</span> Seq.fold (<span class="org-keyword">fun</span> <span class="org-variable-name">mask</span> <span class="org-variable-name">i</span> -&gt; <span class="org-keyword">if</span> pressures[i] &gt; 0 <span class="org-keyword">then</span> mask ||| (1L &lt;&lt;&lt; i) <span class="org-keyword">else</span> mask) 0L
+<span class="org-keyword">let</span> <span class="org-keyword">mutable</span> <span class="org-variable-name">best</span> = 0
+<span class="org-keyword">for</span> key <span class="org-keyword">in</span> Map.keys routes <span class="org-keyword">do</span>
+    <span class="org-keyword">let</span> <span class="org-variable-name">inverse</span> = key ^^^ mask
+    <span class="org-keyword">if</span> Map.containsKey inverse routes <span class="org-keyword">then</span>
+        best &lt;- max best (routes[key] + routes[inverse])
+best
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org3397a9f" class="outline-2">
+<h2 id="org3397a9f">Improvements</h2>
+<div class="outline-text-2" id="text-org3397a9f">
+<p>
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using <code>for</code>-loops and mutation and then refactor the
+mutation away, changing the <code>for</code>-loop into a <code>fold</code> or a <code>scan</code>.
+</p>
+
+<p>
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+</p>
+
+<p>
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something <i>new</i> then it will still end up in this section.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org3c8d496" class="outline-2">
+<h2 id="org3c8d496">Reflection</h2>
+<div class="outline-text-2" id="text-org3c8d496">
+<p>
+I had a hard time with this day. I was done with part one very quickly, but part
+two caused quite the headache. Probably caused by sleep depravation, every
+solution I came up with at first used multiple elephants, and I just could not
+get my head around <i>why</i>. More importantly, I could not get my head around <i>how
+not</i>.
+</p>
+
+<p>
+In the end, frustrated I came up with the 17 minute solution. While it
+ran, being frustrated, I came up with the faster solution and coded it up. Being
+much simpler to reason about, I had it done as the other solution popped out
+its answer.
+</p>
+
+<p>
+Thankfully the faster solution was also correct, and I could end the day feeling
+decent about my solve. I need more sleep, though.
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day16.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

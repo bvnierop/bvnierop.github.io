@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022</h1>
+<p class="subtitle">Nov 18, 2022</p>
+</header><p>
+In the past few years I've participated in <a href="https://adventofcode.com">Advent of Code</a> in order to learn a
+radically new programming language. Taken from the website, "Advent of Code is
+an Advent calendar of small programming puzzles for a variety of skill sets and
+skill levels that can be solved in any programming language you like. People use
+them as a speed contest, interview prep, company training, university
+coursework, practice problems, or to challenge each other."
+</p>
+
+<p>
+It started with Common Lisp (twice), then OCaml, followed by Elixir and last
+year Typed Racket.
+</p>
+
+<p>
+Trying a new programming language every year leads to interesting results. First
+of all, it teaches me a new language, including a different way of thinking. But
+it also means that rather than solving the problem, I'm often busy solving my
+lack of knowledge of the language. These results in relatively simple problems
+taking a long time to solve.
+</p>
+
+<p>
+The result of that is that I've yet to finish a complete edition of Advent of Code.
+</p>
+
+<div id="outline-container-org18997cf" class="outline-2">
+<h2 id="org18997cf">Slightly different</h2>
+<div class="outline-text-2" id="text-org18997cf">
+<p>
+This year is going to be slightly different. I'm still picking a language I've
+not (really) used before. Unlike the past five years, however, it's not going to
+be as radically different.
+</p>
+
+<p>
+My language of choice is going to be F#. Like OCaml it's based on ML, and like
+OCaml it's multi paradigm. It's also based on the .NET ecosystem, which I'm
+already familiar with.
+</p>
+
+<p>
+Also different from previous years is that I'll be less strict in following the
+language's preferred paradigms when solving a problem. That means that I'll be
+allowed to write code with mutation and exceptions and being imperative, rather
+than trying to write (close to) pure functional code.
+</p>
+
+<p>
+Then, after a problem is solved, I can look at other people's solution using
+similar languages and refactor and adjust my code.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org6093468" class="outline-2">
+<h2 id="org6093468">The plan</h2>
+<div class="outline-text-2" id="text-org6093468">
+<p>
+As time permits I'll try to solve every problem on the day that it's published
+and write a short post about it. On the weekends I'll look to improve my code
+and formalize my learnings about the language in another post.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org396e41f" class="outline-2">
+<h2 id="org396e41f">First things first</h2>
+<div class="outline-text-2" id="text-org396e41f">
+<p>
+Over the years I've built some basic tooling around my participation in Advent
+of Code. These are some command line tools that help download the input, prepare
+solution templates and run solutions for various days using various different
+input files. I tend to rewrite those in the language I am using that year and be
+prepared before the event starts.
+</p>
+
+<p>
+In the next post I'll discuss the process of writing these in F#.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 12: Hill Climbing Algorithm</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 12: Hill Climbing Algorithm</h1>
+<p class="subtitle">Dec 12, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-orgd1a7a61" class="outline-2">
+<h2 id="orgd1a7a61">Day 12: Hill Climbing Algorithm</h2>
+<div class="outline-text-2" id="text-orgd1a7a61">
+<p>
+Summary: Given a hill, represented as a grid of characters where <code>a</code> represents
+height 0 and <code>z</code> height 26, what is the shortest path from start (height <code>a</code>,
+represented by <code>S</code>) finish (height <code>z</code>, represented by <code>E</code>). You cannot climb
+<i>up</i> a height distance greater than 1.
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">Sabqponm
+abcryxxl
+accszExk
+acctuvwj
+abdefghi
+</pre>
+</div>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/12">here</a>.
+</p>
+
+<p>
+Despite the name and description of today's problem, we don't actually have to
+implement a hill climbing algorithm.
+</p>
+
+<p>
+There are various ways to find the shortest path from A to B. One way is the
+<i>breadth first search</i>, or BFS. The limitation of using BFS for efficiently
+finding the shortest path is that all paths between neighbouring locations must
+have the same length. In this case that's true. They all have length <code>1</code>.
+</p>
+</div>
+
+<div id="outline-container-orgeb20b85" class="outline-3">
+<h3 id="orgeb20b85">Explaning Breadth First Search</h3>
+<div class="outline-text-3" id="text-orgeb20b85">
+<p>
+Imagine a tree structure. It has a root and some children.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">     A
+   /   \
+  B     C
+ / \   / \
+D   E F   G
+</pre>
+</div>
+
+<p>
+A breadth first search will search this tree one level at a time. First we
+examine <code>A</code>. Then we examine <code>B</code> and <code>C</code>. Then we examine <code>D</code>, <code>E</code>, <code>F</code> and
+<code>G</code>. If <code>E</code> is what we're looking for, we'll find it at a depth of 2. So the
+shortest (and in this case <i>only</i>) path from <code>A</code> to <code>E</code> is 2.
+</p>
+
+<p>
+Our grid is not a tree structure. However, we can represent it as one. We
+call the top left corner where <code>S</code> is in the sample input <code>(0,0)</code>. That's also
+our root. It's neighbours are the children. Their neighbours are their children,
+and so on.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">	     (0,0)
+       /-----/  \------\
+     (0,1)           (1,0)
+    /  |  \         /  |  \
+(0,0)(0,2)(1,1) (0,0)(2,0)(1,1)
+</pre>
+</div>
+
+<p>
+As you can see from this example there are some duplicates. That also means that
+there are multiple paths from the start to those points. In this short example
+all paths are possible, but if we were to extend the tree with one more level
+we'd end up with a path from <code>(2,0)</code> to <code>(3,0)</code>, but the height difference is
+too large for that path to be taken.
+</p>
+
+<p>
+What that means is that we don't have to examine every path in this tree. We can
+discard invalid paths and paths to points we've already seen. After all, there
+exists a path from <code>(0,0)</code> to <code>(0,0)</code> that take 2 steps, but there's also one
+that takes 0 steps (not moving at all!)
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgf0b6bbd" class="outline-3">
+<h3 id="orgf0b6bbd">Implementing BFS</h3>
+<div class="outline-text-3" id="text-orgf0b6bbd">
+<p>
+The way we implement BFS is by using a queue. A queue is a data structure that
+lets you get elements out of it in the same order you put them in.
+</p>
+
+<p>
+Start by queueing <code>(0,0)</code>. Then, as long as the queue isn't empty, take the next
+node off the queue. <code>(0,0)</code> in this case. Examine its children. If we want to
+process them, put them in the queue. The queue may now look like <code>(0,1);(1,0)</code>. Take the
+next element off the queue: <code>(0,1)</code>. Examine its children and put the ones we want
+to process on the queue. We've already seen <code>(0,0)</code> so we don't care about that
+one. The others are new so we put them on the queue: <code>(1,0);(0,2);(1,1)</code>. When
+we take the next element off the queue we're still looking at the points
+directly connected to <code>(0,0)</code>. We keep searching until we find the
+destination. If the queue is empty then no more nodes have to be examined.
+</p>
+
+<p>
+In order to determine <i>how far away the destination is</i> we need to queue a
+combination of both the distance <i>and</i> the point. For example: <code>(0,(0,0))</code>. Then
+when we put the children on the queue we increment the distance, so the queue
+becomes: <code>(1,(0,1));(1,(1,0))</code>. When we look at <code>(1,(0,1))</code> and put <i>its</i>
+children on the queue, the queue then becomes <code>(1,(1,0));(2,(0,2));(2,(1,1))</code>.
+</p>
+
+<p>
+In F#, without mutation, here's how that can look:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">bfs</span> <span class="org-variable-name">start</span> <span class="org-variable-name">finishFn</span> <span class="org-variable-name">validFn</span> (<span class="org-variable-name">grid</span>: 'a <span class="org-variable-name">array</span> <span class="org-variable-name">array</span>) =
+    <span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">loop</span> <span class="org-variable-name">queue</span> <span class="org-variable-name">seen</span> =
+        <span class="org-keyword">if</span> Queue.isEmpty queue <span class="org-keyword">then</span> None
+        <span class="org-keyword">else</span>
+            <span class="org-keyword">let</span> (<span class="org-variable-name">dist</span>, (<span class="org-variable-name">p1</span>, <span class="org-variable-name">p2</span>)) = Queue.front queue
+            <span class="org-keyword">if</span> finishFn ((p1, p2), grid.[p1].[p2]) <span class="org-keyword">then</span> Some dist
+            <span class="org-keyword">else</span>
+                <span class="org-keyword">let</span> (<span class="org-variable-name">newQ</span>, <span class="org-variable-name">newSeen</span>) =
+                    Seq.fold (<span class="org-keyword">fun</span> (<span class="org-variable-name">newQ</span>, <span class="org-variable-name">newSeen</span>) <span class="org-variable-name">npos</span> -&gt;
+                        <span class="org-keyword">if</span> <span class="org-keyword">not</span> <span class="org-fsharp-ui-operator">&lt;|</span> Set.contains npos newSeen &amp;&amp; validFn ((p1, p2), grid.[p1].[p2]) (npos, grid.[fst npos].[snd npos]) <span class="org-keyword">then</span>
+                            (Queue.enqueue (dist + 1, npos) newQ,
+                            Set.add npos newSeen)
+                        <span class="org-keyword">else</span>
+                            (newQ, newSeen)) <span class="org-fsharp-ui-operator">&lt;|</span> (Queue.dequeue queue, seen) <span class="org-fsharp-ui-operator">&lt;|</span> (Array.neighbours <span class="org-fsharp-ui-operator">&lt;|</span> p1 <span class="org-fsharp-ui-operator">&lt;|</span> p2 <span class="org-fsharp-ui-operator">&lt;|</span> grid)
+                loop newQ newSeen
+
+    <span class="org-keyword">let</span> <span class="org-variable-name">queue</span> = Queue.enqueue (0, start) Queue.empty
+    <span class="org-keyword">let</span> <span class="org-variable-name">seen</span> = Set.add start Set.empty
+    loop queue seen
+</pre>
+</div>
+
+<p>
+The function <code>bfs</code> takes four arguments. <code>start</code> is our starting
+location. <code>finishFn</code> is a function that we'll call to check if we're
+done. <code>validFn</code> is a fcuntion we'll call to check if a neighbour is one we can
+go to. <code>grid</code> is our grid.
+</p>
+
+<p>
+The <code>loop</code> function is the meat. It implements the algorithm described above. If
+the queue is empty we return <code>None</code> to indicate that no answer was found. This
+isn't <i>always</i> what you want but for today's problem it is. This is a case we
+shouldn't reach in today's problem because a path is guaranteed, but it's good
+to be complete so we can reuse this later.
+</p>
+
+<p>
+If the queue is not empty then we'll look at the first element on it. We run it
+against <code>finishFn</code>. If that returns true then we return <code>Some dist</code>, the
+distance from the starting node. Otherwise we build a new queue, folding over
+the neighbours. If we've not seen the neighbour before <i>and</i> it's a valid
+destination then we mark it as seen and put it on the queue. FInally we call
+<code>loop</code> recursively with the new queue and seen collections.
+</p>
+
+<p>
+<code>Array.neighbours</code> is a helper function that I'm not sure I've placed in the
+correct module, but it returns the indices of the neighbours.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">neighbours</span> <span class="org-variable-name">index1</span> <span class="org-variable-name">index2</span> (<span class="org-variable-name">array</span>: 'a <span class="org-variable-name">array</span> <span class="org-variable-name">array</span>) = seq {
+    <span class="org-keyword">let</span> <span class="org-variable-name">deltas</span> = [(0, 1); (0, -1); (1, 0); (-1, 0)]
+    <span class="org-keyword">for</span> (di1, di2) <span class="org-keyword">in</span> deltas <span class="org-keyword">do</span>
+        <span class="org-keyword">let</span> <span class="org-variable-name">newI1</span> = index1 + di1
+        <span class="org-keyword">let</span> <span class="org-variable-name">newI2</span> = index2 + di2
+        <span class="org-keyword">if</span> newI1 &gt;= 0 &amp;&amp; newI1 &lt; Array.length array &amp;&amp;
+           newI2 &gt;= 0 &amp;&amp; newI2 &lt; Array.length array[newI1] <span class="org-keyword">then</span> <span class="org-keyword">yield</span> (newI1, newI2)
+}
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgfe380a2" class="outline-3">
+<h3 id="orgfe380a2">Solving the problem</h3>
+<div class="outline-text-3" id="text-orgfe380a2">
+<p>
+Algorithm understood and implementation done is the hard part in solving the
+problem.
+</p>
+
+<p>
+Parsing consists of two parts. First we convert the grid to heights.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">parseChr</span> = <span class="org-keyword">function</span>
+    <span class="org-fsharp-ui-operator">|</span> <span class="org-string">'S'</span> -&gt; parseChr <span class="org-string">'a'</span>
+    <span class="org-fsharp-ui-operator">|</span> <span class="org-string">'E'</span> -&gt; parseChr <span class="org-string">'z'</span>
+    <span class="org-fsharp-ui-operator">|</span> c -&gt; Convert.ToInt32(c) - Convert.ToInt32(<span class="org-string">'a'</span>)
+
+<span class="org-keyword">let</span> <span class="org-function-name">parseLine</span> <span class="org-variable-name">line</span> = line <span class="org-fsharp-ui-operator">|&gt;</span> Array.map parseChr
+</pre>
+</div>
+
+<p>
+We also need the starting position. In F#, finding the index in an array of
+arrays is a bit clunky, so I wrote a helper. Even though breaks and early
+returns aren't a thing in F#, this function will exit early because <code>Seq.pick</code>
+only evaluates the sequence until the first time it finds a <code>Some</code> value.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">findIndex2D</span> <span class="org-variable-name">predicate</span> (<span class="org-variable-name">array</span>: 'a <span class="org-variable-name">array</span> <span class="org-variable-name">array</span>) =
+    Seq.pick id <span class="org-fsharp-ui-operator">&lt;|</span> seq {
+        <span class="org-keyword">for</span> y = 0 <span class="org-keyword">to</span> Array.length array - 1 <span class="org-keyword">do</span>
+            <span class="org-keyword">for</span> x = 0 <span class="org-keyword">to</span> Array.length array[y] - 1 <span class="org-keyword">do</span>
+                <span class="org-keyword">if</span> predicate array.[y].[x] <span class="org-keyword">then</span> <span class="org-keyword">yield</span> Some (y, x)
+                <span class="org-keyword">else</span> <span class="org-keyword">yield</span> None
+    }
+</pre>
+</div>
+
+<p>
+We can then use the helper to find <code>S</code> and <code>E</code> in the input.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">parse</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">asArray</span> = input <span class="org-fsharp-ui-operator">|&gt;</span> List.map Seq.toArray <span class="org-fsharp-ui-operator">|&gt;</span> List.toArray
+    (Array.findIndex2D ((=) <span class="org-string">'S'</span>) asArray, Array.findIndex2D ((=) <span class="org-string">'E'</span>) asArray,
+        asArray <span class="org-fsharp-ui-operator">|&gt;</span> Array.map parseLine)
+</pre>
+</div>
+
+<p>
+With all that prep work we can now solve the problem in just a few lines. We
+parse the input and call our <code>bfs</code> function. We start at <code>start</code>. <code>finishFn</code>
+checks that we've reached the finish. <code>validFn</code> checks that we never climb <i>up</i>
+more than 1 hight difference.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve1</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    <span class="org-keyword">let</span> (<span class="org-variable-name">start</span>, <span class="org-variable-name">finish</span>, <span class="org-variable-name">grid</span>) = parse input
+
+    bfs start (<span class="org-keyword">fun</span> (<span class="org-variable-name">pos</span>, <span class="org-variable-name">_</span>) -&gt; pos = finish)
+            (<span class="org-keyword">fun</span> (<span class="org-variable-name">_</span>, <span class="org-variable-name">h</span>) (<span class="org-variable-name">_</span>, <span class="org-variable-name">h2</span>) -&gt; h2 - h &lt;= 1)
+            grid
+    <span class="org-fsharp-ui-operator">|&gt;</span> Option.defaultValue -1
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgbab4299" class="outline-2">
+<h2 id="orgbab4299">Part 2</h2>
+<div class="outline-text-2" id="text-orgbab4299">
+<p>
+Summary: Find the shortest path from <i>any</i> point with height 0 to the end.
+</p>
+
+<p>
+There are two ways we can solve this problem. One way is to pass <i>all</i> points
+with height 0 as starting points. The fact that we never look at any point twice
+guarantees that we will find the shortest path to the end. That, however, would
+require us to change our <code>bfs</code> function.
+</p>
+
+<p>
+What we can do instead is find the <i>reverse</i> path. We start at <code>finish</code> and stop
+at the first position with height 0. We also have to reverse the height
+difference check, because we're checking in the wrong direction.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve2</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    <span class="org-keyword">let</span> (<span class="org-variable-name">start</span>, <span class="org-variable-name">finish</span>, <span class="org-variable-name">grid</span>) = parse input
+
+    bfs finish (<span class="org-keyword">fun</span> (<span class="org-variable-name">_</span>, <span class="org-variable-name">h</span>) -&gt; h = 0)
+                (<span class="org-keyword">fun</span> (<span class="org-variable-name">_</span>, <span class="org-variable-name">h2</span>) (<span class="org-variable-name">_</span>, <span class="org-variable-name">h</span>) -&gt; h2 - h &lt;= 1)
+                grid
+    <span class="org-fsharp-ui-operator">|&gt;</span> Option.defaultValue -1
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org9c864fc" class="outline-2">
+<h2 id="org9c864fc">Improvements</h2>
+<div class="outline-text-2" id="text-org9c864fc">
+<p>
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using <code>for</code>-loops and mutation and then refactor the
+mutation away, changing the <code>for</code>-loop into a <code>fold</code> or a <code>scan</code>.
+</p>
+
+<p>
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+</p>
+
+<p>
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something <i>new</i> then it will still end up in this section.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org5bd120e" class="outline-2">
+<h2 id="org5bd120e">Reflection</h2>
+<div class="outline-text-2" id="text-org5bd120e">
+<p>
+We've reached this Advent of Code's first shortest path problem. If I write BFS
+in my favourite competitive programming language then I can do it in a few
+minutes. In my Advent of Code choices I tend to spend significantly more
+time. Sometimes hours. This time I finished in under 30 minutes, which I was
+very happy about.
+</p>
+
+<p>
+On to the next one!
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day12.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

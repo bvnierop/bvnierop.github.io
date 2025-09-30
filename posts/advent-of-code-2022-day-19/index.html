@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 19: Not Enough Minerals</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 19: Not Enough Minerals</h1>
+<p class="subtitle">Dec 19, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-org581cb32" class="outline-2">
+<h2 id="org581cb32">Day 19: Not Enough Minerals</h2>
+<div class="outline-text-2" id="text-org581cb32">
+<p>
+Summary: An ore robot requires ore to build and mines 1 ore per minute. A clay
+robot requires ore and mines 1 clay per minute. An obsidian robot requires ore
+and clay to build and mines 1 obsidian per minute. Finally, a geode cracking
+robot requires ore and obsidian to build and cracks 1 geode per minute.
+</p>
+
+<p>
+A <i>blueprint</i> is a configuration of resource requirements for each robot. The
+<i>quality level</i> of a blueprint is the <i>ID</i> of the blueprint multiplied by the
+<i>maximum number of geodes that can be cracked in 24 minutes using that
+blueprint</i>.
+</p>
+
+<p>
+You start with a single ore robot. Building a robot costs one minute. You can
+build one robot at a time. What is the sum of the <i>quality levels</i> of all
+<i>blueprints</i> in the input?
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">Blueprint 1: Each ore robot costs 4 ore. Each clay robot costs 2 ore. Each obsidian robot costs 3 ore and 14 clay. Each geode robot costs 2 ore and 7 obsidian.
+Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsidian robot costs 3 ore and 8 clay. Each geode robot costs 3 ore and 12 obsidian.
+</pre>
+</div>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/19">here</a>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">Blueprint 1:
+  Each ore robot costs 4 ore.
+  Each clay robot costs 2 ore.
+  Each obsidian robot costs 3 ore and 14 clay.
+  Each geode robot costs 2 ore and 7 obsidian.
+</pre>
+</div>
+
+<p>
+In order to figure out what the maximum number of geodes that can be cracked in
+24 minutes is, we need to try every possible combination of robots that we can
+be build in that time. This includes sometimes <i>not building a robot</i> because it
+may be better to build a more expensive robot.
+</p>
+
+<p>
+Unfortunately, given the constraints of the problem this gives us 5<sup>24</sup>
+possibilities in the worst case, or <code>59.604.644.775.390.625</code>. This is too
+much. So we need to be smart about it and prune the search space a bit.
+</p>
+
+<p>
+We can only build one robot per minute. Because of this, the largest number of
+robots we will have to build for a resource type is the maximum cost of any
+robot for that resource type. For the first blueprint in the example, that would
+be a maximum of 4 ore robots, 14 clay robots and 7 obsidian robots.
+</p>
+
+<p>
+Another, perhaps less obvious, improvement is that it's only worthwhile to skip
+building a robot in this minute, if we make a different robot <i>that we could not
+afford before</i> as the next robot.
+</p>
+
+<p>
+This is hard to implement if we search on a per-minute basis. It becomes much
+easier if we search based on the next choice of robot. We then execute that
+choice as soon as we can.
+</p>
+
+<p>
+For this problem we'll use some F# records to make the code more readable. So
+far in Advent of Code we've mostly used tuples, but in this case that becomes a
+mess quickly.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">Blueprint</span> =
+    { Id: <span class="org-type">int</span>
+      OreRobotCost: <span class="org-type">int</span>
+      ClayRobotCost: <span class="org-type">int</span>
+      ObsidianRobotCost: (int * int)
+      GeodeRobotCost: (int * int) }
+
+<span class="org-keyword">type</span> <span class="org-type">RobotCounts</span> =
+    { OreRobots: <span class="org-type">int</span>
+      ClayRobots: <span class="org-type">int</span>
+      ObsidianRobots: <span class="org-type">int</span>
+      GeodeRobots: <span class="org-type">int</span> }
+
+<span class="org-keyword">type</span> <span class="org-type">Inventory</span> =
+    { Ore: <span class="org-type">int</span>
+      Clay: <span class="org-type">int</span>
+      Obsidian: <span class="org-type">int</span>
+      Geodes: <span class="org-type">int</span> }
+</pre>
+</div>
+
+<p>
+<code>Blueprint</code> holds the blueprint information, including the costs of each
+robot. <code>RobotCounts</code> is a count of the robots we have in the simulation and
+<code>Inventory</code> is the amount of resources we have.
+</p>
+
+<p>
+We'll add some helpers for creating robots. I'll only show one, but the others
+are the same.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">spawnClayRobot</span> <span class="org-variable-name">blueprint</span> <span class="org-variable-name">robots</span> <span class="org-variable-name">inventory</span> =
+    <span class="org-keyword">if</span> blueprint.ClayRobotCost &lt;= inventory.Ore <span class="org-keyword">then</span>
+         Some ({ robots <span class="org-keyword">with</span> ClayRobots = robots.ClayRobots + 1 },
+         { inventory <span class="org-keyword">with</span> Ore = inventory.Ore - blueprint.ClayRobotCost })
+    <span class="org-keyword">else</span> None
+</pre>
+</div>
+
+<p>
+The helper checks if we have enough resources and if it does it will return an
+updated <code>RobotCounts</code> and <code>Inventory</code>. Otherwise it will return <code>None</code>,
+indicating that spawning has failed.
+</p>
+
+<p>
+We'll also need a function that updates our inventory based on the robots that
+we have.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">updateInventory</span> <span class="org-variable-name">robotCounts</span> <span class="org-variable-name">inventory</span> =
+    { inventory <span class="org-keyword">with</span>
+        Ore = inventory.Ore + robotCounts.OreRobots
+        Clay = inventory.Clay + robotCounts.ClayRobots
+        Obsidian = inventory.Obsidian + robotCounts.ObsidianRobots
+        Geodes = inventory.Geodes + robotCounts.GeodeRobots }
+</pre>
+</div>
+
+<p>
+Now we can start writing the code for the simulation. In order to make the next
+choice we need to determine which choices we still have. <a href="https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/sequences">Sequence expressions</a>
+make this incredibly readable.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">simulate</span> <span class="org-variable-name">blueprint</span> <span class="org-variable-name">minutes</span> =
+    <span class="org-keyword">let</span> <span class="org-function-name">generateChoices</span> <span class="org-variable-name">robots</span> = [
+        <span class="org-keyword">if</span> robots.ObsidianRobots &gt; 0 <span class="org-keyword">then</span> spawnGeodeRobot
+        <span class="org-keyword">if</span> robots.ClayRobots &gt; 0 &amp;&amp; robots.ObsidianRobots &lt; maxObsidian blueprint <span class="org-keyword">then</span> spawnObsidianRobot
+        <span class="org-keyword">if</span> robots.ClayRobots &lt; maxClay blueprint <span class="org-keyword">then</span> spawnClayRobot
+        <span class="org-keyword">if</span> robots.OreRobots &lt; maxOre blueprint <span class="org-keyword">then</span> spawnOreRobot
+    ]
+
+    <span class="org-comment-delimiter">// </span><span class="org-comment">...</span>
+</pre>
+</div>
+
+<p>
+Our search still works on a per minute basis. It takes the minute (<code>t</code>), the
+state in the form of an <code>inventory</code> and <code>robots</code>, and <code>nextRobot</code> to create. If
+we reach the final minute then we return the amount of geodes we've gathered.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">loop</span> <span class="org-variable-name">t</span> <span class="org-variable-name">inventory</span> <span class="org-variable-name">robots</span> <span class="org-variable-name">nextRobot</span> <span class="org-variable-name">bestSoFar</span> =
+    <span class="org-keyword">if</span> t = minutes <span class="org-keyword">then</span> inventory.Geodes
+
+    <span class="org-comment-delimiter">// </span><span class="org-comment">...</span>
+</pre>
+</div>
+
+<p>
+If it's <i>not</i> the last minute, then if we have not made a choice then we will
+create the possible choices. Then we'll attempt to continue with each possible
+choice, taking the best result.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">match</span> nextRobot <span class="org-keyword">with</span>
+| None -&gt;
+    generateChoices robots
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (<span class="org-keyword">fun</span> <span class="org-variable-name">spawner</span> -&gt; loop t inventory robots (Some spawner))
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.max
+
+<span class="org-comment-delimiter">// </span><span class="org-comment">...</span>
+</pre>
+</div>
+
+<p>
+If we <i>did</i> make a choice then we'll try to spawn the robot. If that fails
+because we don't have enough resources then we continue with the next minute,
+after adding the harvest of the minute to our inventory.
+</p>
+
+<p>
+If spawning the robot succeeds then we continue to the next minute with both the
+minute's harvest and the new robot.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">            <span class="org-fsharp-ui-operator">|</span> Some spawner -&gt;
+                <span class="org-keyword">match</span> spawner blueprint robots inventory <span class="org-keyword">with</span>
+                <span class="org-fsharp-ui-operator">|</span> None -&gt; loop <span class="org-fsharp-ui-operator">&lt;|</span> t + 1 <span class="org-fsharp-ui-operator">&lt;|</span> updateInventory robots inventory <span class="org-fsharp-ui-operator">&lt;|</span> robots <span class="org-fsharp-ui-operator">&lt;|</span> Some spawner
+                <span class="org-fsharp-ui-operator">|</span> Some (robotsIncludingNew, inventory) -&gt; loop <span class="org-fsharp-ui-operator">&lt;|</span> t + 1 <span class="org-fsharp-ui-operator">&lt;|</span> updateInventory robots inventory <span class="org-fsharp-ui-operator">&lt;|</span> robotsIncludingNew <span class="org-fsharp-ui-operator">&lt;|</span> None
+loop 0 emptyInventory initialRobotCounts None
+</pre>
+</div>
+
+<p>
+With that in place, we can parse the input, map each blueprint to its <i>quality
+level</i> and finally sum the result.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve1</span> (<span class="org-variable-name">input</span>: <span class="org-type">string List</span>) =
+    input <span class="org-fsharp-ui-operator">|&gt;</span> List.map parseLine
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (<span class="org-keyword">fun</span> <span class="org-variable-name">bp</span> -&gt; simulate bp 24 * bp.Id)
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.sum
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgc85f12f" class="outline-2">
+<h2 id="orgc85f12f">Part 2</h2>
+<div class="outline-text-2" id="text-orgc85f12f">
+<p>
+Summary: For the first <i>three</i> blueprints of the input, find the largest number
+of geodes that can be cracked in <i>32</i> minutes and multiply them together.
+</p>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/19#part2">here</a> (only if you solved part 1).
+</p>
+
+<p>
+In 32 minutes of simulation there are a <i>lot</i> more possibilities, but the number
+of blueprints is a lot smaller. With our optimizations from part 1 finding the
+solution for part 2 takes about 10 minutes.
+</p>
+
+<p>
+We can do better.
+</p>
+
+<p>
+We can reduce the search space even further by eliminating options that are
+worst than the best one we've seen so far, before we reach minute 32.
+</p>
+
+<p>
+To do that we need to determine what the absolute best is we can do starting
+from the current minute. We could be picky about our current income, but it
+turns out that that's not necessary.
+</p>
+
+<p>
+The absolute best we can do is to create a geode robot every minute starting
+right now. We'll ignore the fact that we may not be able to afford that.
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-right">
+
+<col  class="org-right">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-right">minute</th>
+<th scope="col" class="org-right">max new geode robots</th>
+<th scope="col" class="org-left">max geodes cracked</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-right">32</td>
+<td class="org-right">0</td>
+<td class="org-left">0</td>
+</tr>
+
+<tr>
+<td class="org-right">31</td>
+<td class="org-right">1</td>
+<td class="org-left">1</td>
+</tr>
+
+<tr>
+<td class="org-right">30</td>
+<td class="org-right">2</td>
+<td class="org-left">2 + 1</td>
+</tr>
+
+<tr>
+<td class="org-right">29</td>
+<td class="org-right">3</td>
+<td class="org-left">3 + 2 + 1</td>
+</tr>
+
+<tr>
+<td class="org-right">28</td>
+<td class="org-right">4</td>
+<td class="org-left">4 + 3 + 2 + 1</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+In the final minute we can start building a robot but it will never be finished,
+so the maximum new number of robots is <code>0</code>. In the minute before that we can
+build a robot. It will be finished for the final minute and crack one geode. In
+minute 30 we can build one more robot, which will crack two geodes resulting in
+a total of <code>3</code>.
+</p>
+
+<p>
+Generalized we can say that we can build as many robots as there are minutes
+remaining. The amount of geodes they can crack is <code>1 + 2 + ... + n</code>. This is a
+<a href="https://en.wikipedia.org/wiki/Triangular_number">triangular number</a>. The formula to calculate a triangular number is <code>n * (n+1) /
+2</code>.
+</p>
+
+<p>
+The absolute best we can do is this number, plus the amount of geodes we can
+crack with the number of geode robots we already have.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">bestPossible</span> <span class="org-variable-name">t</span> <span class="org-variable-name">inventory</span> <span class="org-variable-name">robots</span> =
+    <span class="org-keyword">let</span> <span class="org-variable-name">remainingMinutes</span> = minutes - t - 1
+    <span class="org-keyword">let</span> <span class="org-variable-name">maxExtraGeodes</span> = (remainingMinutes * (remainingMinutes + 1)) / 2
+    (remainingMinutes + 1) * robots.GeodeRobots + maxExtraGeodes + inventory.Geodes
+</pre>
+</div>
+
+<p>
+We can then update our <code>loop</code> function to first check if it's still possible to
+beat the best we've seen so far. If we can't then we will immediately abort this
+branch.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">loop</span> <span class="org-variable-name">t</span> <span class="org-variable-name">inventory</span> <span class="org-variable-name">robots</span> <span class="org-variable-name">nextRobot</span> <span class="org-variable-name">bestSoFar</span> =
+    <span class="org-keyword">if</span> t = minutes <span class="org-keyword">then</span> max bestSoFar inventory.Geodes
+    <span class="org-keyword">else</span>
+        <span class="org-keyword">if</span> bestPossible t inventory robots &lt; bestSoFar <span class="org-keyword">then</span> bestSoFar
+        <span class="org-keyword">else</span>
+            <span class="org-keyword">match</span> nextRobot <span class="org-keyword">with</span>
+            <span class="org-fsharp-ui-operator">|</span> None -&gt;
+                generateChoices robots
+                <span class="org-fsharp-ui-operator">|&gt;</span> List.scan (<span class="org-keyword">fun</span> <span class="org-variable-name">bestSoFar</span> <span class="org-variable-name">spawner</span> -&gt; loop t inventory robots (Some spawner) bestSoFar) bestSoFar
+                <span class="org-fsharp-ui-operator">|&gt;</span> List.max
+            <span class="org-fsharp-ui-operator">|</span> Some spawner -&gt;
+                <span class="org-keyword">match</span> spawner blueprint robots inventory <span class="org-keyword">with</span>
+                <span class="org-fsharp-ui-operator">|</span> None -&gt; loop <span class="org-fsharp-ui-operator">&lt;|</span> t + 1 <span class="org-fsharp-ui-operator">&lt;|</span> updateInventory robots inventory <span class="org-fsharp-ui-operator">&lt;|</span> robots <span class="org-fsharp-ui-operator">&lt;|</span> Some spawner <span class="org-fsharp-ui-operator">&lt;|</span> bestSoFar
+                <span class="org-fsharp-ui-operator">|</span> Some (robotsIncludingNew, inventory) -&gt; loop <span class="org-fsharp-ui-operator">&lt;|</span> t + 1 <span class="org-fsharp-ui-operator">&lt;|</span> updateInventory robots inventory <span class="org-fsharp-ui-operator">&lt;|</span> robotsIncludingNew <span class="org-fsharp-ui-operator">&lt;|</span> None <span class="org-fsharp-ui-operator">&lt;|</span> bestSoFar
+loop 0 emptyInventory initialRobotCounts None -1
+</pre>
+</div>
+
+<p>
+Solving part 2 then becomes taking the first three blueprints, get the best
+result for each of them and multiply the results. Because we're calculating much
+fewer blueprints it even runs slightly faster than part 1 with additional
+optimization.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">solve2</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    input <span class="org-fsharp-ui-operator">|&gt;</span> List.map parseLine
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.take (min <span class="org-fsharp-ui-operator">&lt;|</span> List.length input <span class="org-fsharp-ui-operator">&lt;|</span> 3)
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.map (<span class="org-keyword">fun</span> <span class="org-variable-name">bp</span> -&gt; simulate bp 32)
+    <span class="org-fsharp-ui-operator">|&gt;</span> List.reduce (*)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgab55b6b" class="outline-2">
+<h2 id="orgab55b6b">Improvements</h2>
+<div class="outline-text-2" id="text-orgab55b6b">
+<p>
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using <code>for</code>-loops and mutation and then refactor the
+mutation away, changing the <code>for</code>-loop into a <code>fold</code> or a <code>scan</code>.
+</p>
+
+<p>
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+</p>
+
+<p>
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something <i>new</i> then it will still end up in this section.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org1c4ca5d" class="outline-2">
+<h2 id="org1c4ca5d">Reflection</h2>
+<div class="outline-text-2" id="text-org1c4ca5d">
+<p>
+I kind of shot myself in my own foot this day. I realized quickly that the
+problem was easily solvable by simulating and pruning the search tree. I
+thought, however, to have some fun and solve the problem with randomization
+instead. The idea was to run 100k or so simulations with completely randomized
+choices. This turned out to lead to the correct results, but the runtime was
+significantly worse than I had anticipated and it took a lot more tweaking to
+get right. In the end, the deterministic version was easier to write and
+performed a lot better than the randomized solution.
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day19.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

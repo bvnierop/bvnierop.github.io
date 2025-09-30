@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 06</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 06</h1>
+<p class="subtitle">Dec 06, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-org7734ab2" class="outline-2">
+<h2 id="org7734ab2">Day 06: Tuning Trouble</h2>
+<div class="outline-text-2" id="text-org7734ab2">
+<p>
+Summary: Given a string, find the first location where four different characters
+have occurred in succession.
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">ababcdefgabababa
+</pre>
+</div>
+
+<p>
+In this example input the first sequence of four different characters is <code>abcd</code>
+which ends at position <code>6</code>.
+</p>
+
+<p>
+Find the full description <a href="https://adventofcode.com/2022/day/6">here</a>.
+</p>
+
+<p>
+In order to find the first sequence of four different characters we have to look
+at every subsequence of four characters and determine if they are unique. My
+input was 4096 characters, so that's easily quick enough.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">1. [a b a b]c d e f g a b a b a b a 
+2.  a[b a b c]d e f g a b a b a b a 
+3.  a b[a b c d]e f g a b a b a b a 
+</pre>
+</div>
+
+<p>
+After the third step we have found the unique sequence.
+</p>
+
+<p>
+In F# we find a built-in function to do just this, <code>List.windowed</code>, which
+returns every subsequence of size <code>n</code> in order.
+</p>
+
+<p>
+There are various ways to check if a subsequence is unique. We can convert the
+subsequence to a set and check its length. Or we can check the length of
+<code>List.distinct</code>. I went for the latter.
+</p>
+
+<p>
+In order to find the <i>first</i> such sequence we can call <code>List.findIndex</code> on the
+result of <code>List.windowed</code>.
+</p>
+
+<p>
+Finally, because the question asks where the sequence <i>ends</i>, we have to add the
+length of the subsequence we're looking for to that index.
+</p>
+
+<p>
+Combined, here's how that looks:
+</p>
+<div class="org-src-container">
+<pre class="src src-fsharp">input
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.windowed 4
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.findIndex (<span class="org-keyword">fun</span> <span class="org-variable-name">window</span> -&gt; Seq.distinct window <span class="org-fsharp-ui-operator">|&gt;</span> Seq.length = 4)
+<span class="org-fsharp-ui-operator">|&gt;</span> ((+) 4)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org5171bba" class="outline-2">
+<h2 id="org5171bba">Part 2</h2>
+<div class="outline-text-2" id="text-org5171bba">
+<p>
+Summary: Instead of finding the first sequence of four different characters,
+find the first sequence of fourteen different characters.
+</p>
+
+<p>
+Since the input is quite small the same method is still easily fast enough. All
+we have to do is change some numbers.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">input
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.windowed 14
+<span class="org-fsharp-ui-operator">|&gt;</span> Seq.findIndex (<span class="org-keyword">fun</span> <span class="org-variable-name">window</span> -&gt; Seq.distinct window <span class="org-fsharp-ui-operator">|&gt;</span> Seq.length = 14)
+<span class="org-fsharp-ui-operator">|&gt;</span> ((+) 14)
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org6d198dd" class="outline-2">
+<h2 id="org6d198dd">Improvements</h2>
+<div class="outline-text-2" id="text-org6d198dd">
+<p>
+With so little code there's also very little to improve. All I changed was
+abstract into a single method, taking the size of the subsequence as an
+argument:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">findFirstUniqueSubsequence</span> <span class="org-variable-name">n</span> <span class="org-variable-name">seq</span> =
+    seq
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.windowed n
+    <span class="org-fsharp-ui-operator">|&gt;</span> Seq.findIndex (<span class="org-keyword">fun</span> <span class="org-variable-name">window</span> -&gt; Seq.distinct window <span class="org-fsharp-ui-operator">|&gt;</span> Seq.length = n)
+    <span class="org-fsharp-ui-operator">|&gt;</span> ((+) n)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgb279925" class="outline-2">
+<h2 id="orgb279925">Reflection</h2>
+<div class="outline-text-2" id="text-orgb279925">
+<p>
+A surprisingly simple problem today. There have definitely been day 1 or day 2
+problems that were more difficult than this one.
+</p>
+
+<p>
+Personally I would have preferred the input to have been longer and more
+diverse, enabling for part 2 to ask for a much longer subsequence, so that the
+very straight forward implementation of windowing over the input would not be
+efficient enough. That would have made for a more interesting implementation and
+a more interesting post. Onto the next one!
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day06.fs">GitHub</a>
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-09-30 Tue 17:19 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advent Of Code 2022 - Day 11: Monkey in the Middle</title>
+<meta name="generator" content="Org mode">
+<meta name="author" content="root">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">        <link rel="stylesheet" href="/css/style.css"> 	        <!-- Icons -->       <link rel="apple-touch-icon" sizes="180x180" href="/img/icons/apple-touch-icon.png">       <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">       <link rel="icon" type="image/png" sizes="16x16" href="/img/icons/favicon-16x16.png">       <link rel="manifest" href="/img/icons/site.webmanifest">       <link rel="mask-icon" href="/img/icons/safari-pinned-tab.svg" color="#5bbad5">       <link rel="shortcut icon" href="/img/icons/favicon.ico">       <meta name="msapplication-TileColor" content="#da532c">       <meta name="msapplication-config" content="/img/icons/browserconfig.xml">       <meta name="theme-color" content="#ffffff">
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 11: Monkey in the Middle</h1>
+<p class="subtitle">Dec 11, 2022</p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+
+<div id="outline-container-orgacf205b" class="outline-2">
+<h2 id="orgacf205b">Day 11: Monkey in the Middle</h2>
+<div class="outline-text-2" id="text-orgacf205b">
+<p>
+Summary: Monkeys are playing Keep Away with your stuff! There's a pattern in how
+they are throwing your items based on how worried you are about the item.
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt">Monkey 0:
+  Starting items: 79, 98
+  Operation: new = old * 19
+  Test: divisible by 23
+    If true: throw to monkey 2
+    If false: throw to monkey 3
+
+Monkey 1:
+  Starting items: 54, 65, 75, 74
+  Operation: new = old + 6
+  Test: divisible by 19
+    If true: throw to monkey 2
+    If false: throw to monkey 0
+
+Monkey 2:
+  Starting items: 79, 60, 97
+  Operation: new = old * old
+  Test: divisible by 13
+    If true: throw to monkey 1
+    If false: throw to monkey 3
+
+Monkey 3:
+  Starting items: 74
+  Operation: new = old + 3
+  Test: divisible by 17
+    If true: throw to monkey 0
+    If false: throw to monkey 1
+</pre>
+</div>
+
+<p>
+Every time a monkey inspects your item, your <i>worry level</i> for that item
+increases by the functions provided in the input. Your <i>worry level</i> is then
+divided by <code>3</code> because of your relief that the monkey did not damage the item.
+</p>
+
+<p>
+In a <i>turn</i> a monkey inspects all of your items in order. For each item it
+adjusts the <i>worry level</i> and then throws it based on the <i>test</i>.
+</p>
+
+<p>
+A monkey's turn ends if it has no (more) items.
+</p>
+
+<p>
+A <i>round</i> consists of all monkeys taking one full turn in order.
+</p>
+
+<p>
+The level of <i>monkey business</i> is the product of the amount of items that the
+<i>two most active</i> monkeys have inspected.
+</p>
+
+<p>
+What is the level of <i>monkey business</i> after 20 rounds?
+</p>
+
+<p>
+Read the full description <a href="https://adventofcode.com/2022/day/11">here</a>.
+</p>
+
+<p>
+This is another one of those problems where parsing is quite a big part of the
+problem. We'll keep track of the monkeys in an array of <code>Monkey</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">Monkey</span> = {
+    Items: <span class="org-type">int64 list</span>
+    Operation: <span class="org-type">int64</span> -&gt; int64
+    Test: <span class="org-type">int</span>;
+    IfTrue: <span class="org-type">int</span>;
+    IfFalse: <span class="org-type">int</span>;
+}
+</pre>
+</div>
+
+<p>
+With operations such as <code>old * 19</code> and <code>old * old</code> I expect numbers to become
+quite big, hence <code>int64</code>. We'll store operations as functions, so it's easy
+apply them.
+</p>
+
+<p>
+Parsing an operatio is a little involved. We need the final two words of the
+line. Then we can match and determine the function to store.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">parseOperation</span> (<span class="org-variable-name">str</span>: <span class="org-type">string</span>) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">finalTwoElements</span> =
+        str <span class="org-fsharp-ui-operator">|&gt;</span> String.split <span class="org-fsharp-ui-operator">|&gt;</span> Array.rev <span class="org-fsharp-ui-operator">|&gt;</span> Array.take 2
+    <span class="org-keyword">match</span> finalTwoElements <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> [|num; op|] -&gt;
+        <span class="org-keyword">if</span> num = <span class="org-string">"old"</span> <span class="org-keyword">then</span> (<span class="org-keyword">fun</span> <span class="org-variable-name">n</span> -&gt; n * n)
+        <span class="org-keyword">elif</span> op = <span class="org-string">"+"</span> <span class="org-keyword">then</span> ((+) (Int64.parse num))
+        <span class="org-keyword">else</span> ((*) (Int64.parse num))
+    <span class="org-fsharp-ui-operator">|</span> _ -&gt; failwith $<span class="org-string">"Failed to parse operation: {str}"</span>
+</pre>
+</div>
+
+<p>
+Parsing the rest of the monkey is also a little involved. There are three lines
+where we're interested in the last word, as an integer. We'll write a helper,
+<code>lastAsInt</code>, which does just that.
+</p>
+
+<p>
+We're not interested in the first line of the monkey, so we skip it. Then we'll
+take the next five lines. The <code>items</code> line we can split on the colon, discard
+the first section, <i>then</i> split on comma and map the resulting array to an
+<code>int64</code> list. The other fields are straight forward.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">parseMonkey</span> (<span class="org-variable-name">input</span>: <span class="org-type">string list</span>) =
+    <span class="org-keyword">let</span> <span class="org-function-name">lastAsInt</span> <span class="org-variable-name">str</span> = str <span class="org-fsharp-ui-operator">|&gt;</span> String.split <span class="org-fsharp-ui-operator">|&gt;</span> Array.last <span class="org-fsharp-ui-operator">|&gt;</span> Int32.parse
+    <span class="org-keyword">match</span> input <span class="org-fsharp-ui-operator">|&gt;</span> List.skip 1 <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> [items;operation;test;ifTrue;ifFalse] -&gt;
+        {
+            Items = items <span class="org-fsharp-ui-operator">|&gt;</span> String.splitOn [|<span class="org-string">':'</span>|] <span class="org-fsharp-ui-operator">|&gt;</span> Array.last <span class="org-fsharp-ui-operator">|&gt;</span> String.splitOn [|<span class="org-string">','</span>|] <span class="org-fsharp-ui-operator">|&gt;</span> Array.map Int64.parse <span class="org-fsharp-ui-operator">|&gt;</span> Array.toList;
+            Operation = parseOperation operation;
+            Test = lastAsInt test;
+            IfTrue = lastAsInt ifTrue;
+            IfFalse = lastAsInt ifFalse;
+        }
+    <span class="org-fsharp-ui-operator">|</span> _ -&gt; failwith <span class="org-string">"Failed to parse monkey"</span>
+</pre>
+</div>
+
+<p>
+Now let's start inside out. A <i>round</i> consists of every monkey taking a
+<i>turn</i>. A monkey will adjust the <i>worry level</i> and then <i>throw an item</i>.
+</p>
+
+<p>
+First we introduce a helper for throwing an item. It simply adds the item to the
+target monkey. It <i>could</i> also remove the item from the source monkey, but we
+can also simply set the monkey's item list to an empty list at the very end.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">throwItem</span> <span class="org-variable-name">n</span> <span class="org-variable-name">item</span> <span class="org-variable-name">monkeys</span> =
+    monkeys
+    <span class="org-fsharp-ui-operator">|&gt;</span> Array.updateAt n { monkeys[n] <span class="org-keyword">with</span> Items = List.append monkeys[n].Items [item] }
+</pre>
+</div>
+
+<p>
+Next we'll peform the entire <i>turn</i>. For every item we calculate the new <i>worry
+level</i>. Then we test if the item is divisible by the monkey's <code>Test</code>
+criterium. A number is divisible by <code>n</code> if <code>number % n = 0</code>. Finally we throw
+the item and update our array of monkeys.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">monkeysAfterThrowing</span> =
+    List.fold (<span class="org-keyword">fun</span> <span class="org-variable-name">monkeys</span> <span class="org-variable-name">item</span> -&gt;
+        <span class="org-keyword">let</span> <span class="org-variable-name">worry</span> =  (monkey.Operation item) / 3L
+
+        <span class="org-keyword">if</span> worry % int64 monkey.Test = 0 <span class="org-keyword">then</span> throwItem monkey.IfTrue worry monkeys
+        <span class="org-keyword">else</span> throwItem monkey.IfFalse worry monkeys) monkeys monkey.Items
+</pre>
+</div>
+
+<p>
+For the final bookkeeping we need to empty the monkey's item list <i>and</i> count
+how many items the monkey has inspected. We do the latter in a separate array
+called <code>counts</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">turn</span> <span class="org-variable-name">index</span> <span class="org-variable-name">counts</span> <span class="org-variable-name">monkeys</span> =
+    <span class="org-keyword">let</span> <span class="org-variable-name">monkey</span> = monkeys[index]
+
+    <span class="org-comment-delimiter">// </span><span class="org-comment">snip
+</span>
+    (counts <span class="org-fsharp-ui-operator">|&gt;</span> Array.updateAt index (counts[index] + (int64)(List.length monkey.Items)),
+    Array.updateAt index { monkeysAfterThrowing[index] <span class="org-keyword">with</span> Items = [] } monkeysAfterThrowing)
+</pre>
+</div>
+
+<p>
+Finally we can implement a <i>round</i>. Since we did not store monkey identifiers,
+we need the index of the monkey. Then we just fold over the indexed array,
+updating <code>counts</code> and <code>monkeys</code> as we go.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">rec</span> <span class="org-function-name">round</span> <span class="org-variable-name">counts</span> <span class="org-variable-name">monkeys</span> =
+    monkeys <span class="org-fsharp-ui-operator">|&gt;</span> Array.indexed
+    <span class="org-fsharp-ui-operator">|&gt;</span> Array.fold (<span class="org-keyword">fun</span> (<span class="org-variable-name">counts</span>, <span class="org-variable-name">monkeys</span>) (<span class="org-variable-name">n</span>, <span class="org-variable-name">_</span>) -&gt; turn n counts monkeys) (counts, monkeys)
+</pre>
+</div>
+
+<p>
+With all the plumbing implemented we can put it all together. We'll run 20
+rounds, get only the <code>counts</code>, sort them, take the top 2 and take their product.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">[1..20]
+<span class="org-fsharp-ui-operator">|&gt;</span> List.fold (<span class="org-keyword">fun</span> (<span class="org-variable-name">counts</span>, <span class="org-variable-name">monkeys</span>) <span class="org-variable-name">_</span> -&gt; round counts monkeys) (counts, monkeys)
+<span class="org-fsharp-ui-operator">|&gt;</span> fst
+<span class="org-fsharp-ui-operator">|&gt;</span> Array.sortDescending <span class="org-fsharp-ui-operator">|&gt;</span> Array.take 2 <span class="org-fsharp-ui-operator">|&gt;</span> Array.fold (*) 1L
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org5e872e4" class="outline-2">
+<h2 id="org5e872e4">Part 2</h2>
+<div class="outline-text-2" id="text-org5e872e4">
+<p>
+Summary: You are worried that you're never going to get your items back. So
+worried, in fact, that your <i>worry level</i> is no longer divided by <code>3</code>! Your
+<i>worry level</i> will spiral out of control.
+</p>
+
+<p>
+With this new rule, determine the level of <i>monkey business</i> after 10000 rounds.
+</p>
+
+<p>
+Let's get the obvious out of the way first. Most if not all of your items are
+going to be in the hands of a monkey that will multiply the <i>worry level</i> by
+itself. 10000 times. That number will get so large that calculating the
+divisibility will be too slow. So now that we're no longer dividing the <i>worry
+level</i> by <code>3</code>, we need another way to adjust it.
+</p>
+
+<p>
+Other than that our code remains the same, though. We can take our solution to
+part 1, pass a new adjust function for the <i>worry level</i> and pass the amount of
+<i>rounds</i> and run with it.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">worry</span> = worryControlFn <span class="org-fsharp-ui-operator">&lt;|</span> monkey.Operation item
+<span class="org-keyword">assert</span>(worry &gt;= 0L)
+</pre>
+</div>
+
+<p>
+We'll also ensure that we don't get an overflow.
+</p>
+</div>
+
+<div id="outline-container-orgd88eab2" class="outline-3">
+<h3 id="orgd88eab2">Maintaining a reasonable worry level</h3>
+<div class="outline-text-3" id="text-orgd88eab2">
+<p>
+So how do we maintain a reasonably worry level?
+</p>
+
+<p>
+In part 1 we used the fact that a number <code>a</code> is divisble by <code>n</code> if <code>a % n =
+0</code>. That still applies here. If <code>a</code> is very large and subtract <code>n</code> from it one
+time that does not change the remainder. <code>(a - n) % n = a % n</code>. If we remove <code>n</code>
+so often that only the remainder remains, this is still true. <code>(a % n) % n = a %
+n</code>.
+</p>
+
+<p>
+Unfortunately there's more than one monkey and their divisors are different. So
+we cannot reduce the <i>worry level</i> to <code>worry % divisor</code>.
+</p>
+
+<p>
+For example: <code>12 % 5 = (12 - 5) % 5 = 2</code>. <code>2 % 5</code> is still <code>2</code>. But if another
+monkey has divisor <code>m = 7</code>, then <code>12 % 7 = 5</code> while <code>(12 - 5) % 7 = 0</code>.
+</p>
+
+<p>
+It turns out we can solve this by storing the remainder of dividing by a number
+that is divisible by both <code>5</code> <i>and</i> <code>7</code>. We can do this because if a number is
+divisble by a multiple of <code>n</code>, it's also divisible by <code>n</code>.
+</p>
+
+<p>
+To get this number for <i>all</i> the monkeys, we need to multiply <i>all</i> of their
+divisors. We want to make this number as small as possible. The smallest number
+in the above example is indeed <code>5 * 7 = 35</code>, but if the numbers were <code>2</code> and
+<code>8</code>, then, since <code>8</code> is already a multiple of <code>2</code>, that number would be <code>2</code>. It
+turns out that in the input all divisors are prime, and so the lowest common
+multiple is, indeed, all of them multiplied together.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">product</span> = monkeys <span class="org-fsharp-ui-operator">|&gt;</span> Array.map (<span class="org-keyword">fun</span> <span class="org-variable-name">m</span> -&gt; int64 m.Test) <span class="org-fsharp-ui-operator">|&gt;</span> Array.fold (*) 1L
+</pre>
+</div>
+
+<p>
+Our <i>worry level</i> adjusting function then becomes <code>worry = worry % product</code>.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org93aff20" class="outline-2">
+<h2 id="org93aff20">Improvements</h2>
+<div class="outline-text-2" id="text-org93aff20">
+<p>
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using <code>for</code>-loops and mutation and then refactor the
+mutation away, changing the <code>for</code>-loop into a <code>fold</code> or a <code>scan</code>.
+</p>
+
+<p>
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+</p>
+
+<p>
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something <i>new</i> then it will still end up in this section.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgd2ee1a1" class="outline-2">
+<h2 id="orgd2ee1a1">Reflection</h2>
+<div class="outline-text-2" id="text-orgd2ee1a1">
+<p>
+I wasn't feeling it today. Not even a little. Eventually I opened my laptop at
+about 23:00. Part 1 was relatively straight forward. For part 2 it took longer
+than I've liked to realise the modulo trick. It shows my rustiness in problem
+solving.
+</p>
+
+<p>
+On to the next one!
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day11.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>
