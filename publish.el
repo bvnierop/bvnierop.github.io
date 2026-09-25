@@ -1,15 +1,15 @@
 ;; Required for source code coloring
 (setq org-html-htmlize-output-type 'css)
 
-(require 'package)
-(package-initialize)
-(unless package-archive-contents
-  (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/") t)
-  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-  (package-refresh-contents))
-(dolist (pkg '(htmlize dash s fsharp-mode))
-  (unless (package-installed-p pkg)
-    (package-install pkg)))
+;; (require 'package)
+;; (package-initialize)
+;; (unless package-archive-contents
+;;   (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/") t)
+;;   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+;;   (package-refresh-contents))
+;; (dolist (pkg '(htmlize dash s fsharp-mode))
+;;   (unless (package-installed-p pkg)
+;;     (package-install pkg)))
 
 (require 'ox-publish)
 (require 's)
@@ -65,7 +65,7 @@
                      (buffer-string)))))
 
 (defun bvn/publish-post-to-html (plist filename pub-dir)
-  (let ((project (cons 'blog plist)))
+  (let ((project (cons "blog" plist)))
     (plist-put plist :subtitle
                (format-time-string "%b %d, %Y" (org-publish-find-date filename project)))
     (bvn/blog-html-publish-to-blog-html plist filename pub-dir)))

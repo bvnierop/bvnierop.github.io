@@ -8,14 +8,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 1
+    - uses: DeterminateSystems/nix-installer-action@v14
+
     - name: build
-      uses: docker://iquiw/alpine-emacs
-      if: github.event.deleted == false
-      with:
-        args: ./build.sh
+      run: nix develop --accept-flake-config -c make all
+
     - name: deploy
       uses: peaceiris/actions-gh-pages@v1.1.0
       if: success()

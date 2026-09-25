@@ -7,16 +7,30 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem
-      (system:
-        let
+    flake-utils.lib.eachDefaultSystem (system:
+      let
           pkgs = import nixpkgs {
-            inherit system;
+          inherit system;
+          };
+
+          siteEmacs =
+            (pkgs.emacsPackagesFor pkgs.emacs).emacsWithPackages (epkgs: with epkgs; [
+              htmlize
+              dash
+              s
+              fsharp-mode
+          ]);
+
+          site-emacs = pkgs.writeShellApplication {
+            name = "site-emacs";
+            runtimeInputs = [ siteEmacs ];
+            text = ''exec emacs "$@"'';
           };
         in
         with pkgs; {
           devShells.default = mkShell {
             buildInputs = [
+              site-emacs
               python3
             ];
           };
