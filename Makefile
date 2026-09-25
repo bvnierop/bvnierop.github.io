@@ -1,4 +1,4 @@
-.PHONY: all clean run
+.PHONY: all clean run watch
 
 all:
 	rm -rf .working-copy
@@ -10,3 +10,6 @@ clean:
 
 run: all
 	cd .publish && python3 -m http.server
+
+watch:
+	./watch.sh

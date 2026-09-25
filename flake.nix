@@ -32,6 +32,7 @@
             buildInputs = [
               site-emacs
               python3
+              watchexec
             ];
           };
         }
