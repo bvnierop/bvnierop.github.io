@@ -46,8 +46,19 @@
           (search-forward-regexp (format "^\\#\\+%s\\:\s+\\(.+\\)$" tag))
           (match-string 1))))))
 
+(defun bvn/read-post-tags (filename)
+  "Return FILETAGS from FILENAME, de-duplicated in source order."
+  (delete-dups
+   (split-string (or (bvn/read-metadata-from-org-file filename "FILETAGS") "")
+                 "[[:space:]]+" t)))
+
 (defun bvn/post-draft? (filename)
   (bvn/read-metadata-from-org-file filename "DRAFT"))
+
+(defun bvn/post-visible-p (filename)
+  "Return non-nil when the post in FILENAME is publicly visible."
+  (and (not (bvn/post-draft? filename))
+       (bvn/post-published? filename)))
 
 (defun bvn/post-future? (filename target-date)
   "Check if post in FILENAME has a publish date after TARGET-DATE"
@@ -93,14 +104,11 @@ and :tags.  Generated archive and tag sources are deliberately ignored."
                            (org-time-string-to-time date-string)
                          (error (error "Post %s has invalid DATE %S: %s"
                                        file date-string (error-message-string err)))))
-                 (tags (delete-dups
-                        (split-string (or (bvn/read-metadata-from-org-file file "FILETAGS") "")
-                                      "[[:space:]]+" t))))
+                 (tags (bvn/read-post-tags file)))
             (unless date
               (error "Post %s has invalid DATE %S" file date-string))
             (push (list :file relative :title title :date-string date-string :date date
-                        :visible (and (not (bvn/post-draft? file))
-                                      (bvn/post-published? file))
+                        :visible (bvn/post-visible-p file)
                         :tags tags)
                   posts)))))
     posts))
@@ -203,10 +211,49 @@ and :tags.  Generated archive and tag sources are deliberately ignored."
                      (insert-file-contents (expand-file-name (format "%s" filename) "./snippets"))
                      (buffer-string)))))
 
+(defun bvn/post-tag-link (filename tag)
+  "Return an Org link from FILENAME to the archive for TAG."
+  (let* ((source (expand-file-name filename))
+         (target (expand-file-name (concat (bvn/tag-slug tag) "/index.org")
+                                   (expand-file-name bvn/working-tag-root)))
+         (relative (file-relative-name target (file-name-directory source))))
+    (format "[[file:%s][%s]]" relative tag)))
+
+(defun bvn/format-post-date (time)
+  "Format TIME like the existing date subtitle, with a capitalized month."
+  (let ((date (format-time-string "%b %d, %Y" time)))
+    (concat (upcase (substring date 0 1)) (substring date 1))))
+
+(defun bvn/post-subtitle (project filename)
+  "Return parsed date and, for visible posts, tag links for FILENAME."
+  (let* ((date (bvn/format-post-date (org-publish-find-date filename project)))
+         (content
+          ;; The posts project also publishes its generated sitemap source;
+          ;; unlike authored posts, it has no DATE metadata of its own.
+          (if (or (null (bvn/read-metadata-from-org-file filename "DATE"))
+                  (not (bvn/post-visible-p filename)))
+              date
+            (let ((tags (bvn/read-post-tags filename)))
+              (if (null tags)
+                  date
+                (concat date " · Tags: "
+                        (mapconcat (lambda (tag) (bvn/post-tag-link filename tag))
+                                   tags " | ")))))))
+    (org-element-parse-secondary-string
+     content (org-element-restriction 'keyword))))
+
 (defun bvn/publish-post-to-html (plist filename pub-dir)
-  (let ((project (cons "blog" plist)))
-    (plist-put plist :subtitle
-               (format-time-string "%b %d, %Y" (org-publish-find-date filename project)))
+  (let* ((project (cons "blog" plist))
+         (plist (copy-sequence plist)))
+    (setq plist (plist-put plist :subtitle (bvn/post-subtitle project filename)))
+    (bvn/blog-html-publish-to-blog-html plist filename pub-dir)))
+
+(defun bvn/publish-talk-to-html (plist filename pub-dir)
+  (let* ((project (cons "blog" plist))
+         (plist (copy-sequence plist)))
+    (setq plist (plist-put plist :subtitle
+                           (bvn/format-post-date
+                            (org-publish-find-date filename project))))
     (bvn/blog-html-publish-to-blog-html plist filename pub-dir)))
 
 (defun bvn/publish-last-posts-sitemap (title sitemap)
@@ -334,7 +381,7 @@ and :tags.  Generated archive and tag sources are deliberately ignored."
              :base-extension "org"						;; only take files with this extension
              :publishing-directory "./.publish/talks"	;; output directory
              :recursive t								;; parse recursively, otherwise only index.org would be parsed
-             :publishing-function 'bvn/publish-post-to-html ;; publish as html
+             :publishing-function 'bvn/publish-talk-to-html ;; publish as html
              :exclude "\\`\\(?:index\\.org\\|last-talks\\.org\\)"
 
              :section-numbers nil
