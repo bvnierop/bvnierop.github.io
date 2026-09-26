@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2026-09-26 Sat 15:14 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Advent Of Code 2022 - Day 11: Monkey in the Middle</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"> <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css"> <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content" class="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 11: Monkey in the Middle</h1>
+<p class="subtitle" role="doc-subtitle">Dec 11, 2022 · Tags: <a href="../tags/fsharp">fsharp</a> | <a href="../tags/advent-of-code">advent-of-code</a></p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+<div id="outline-container-org620155f" class="outline-2">
+<h2 id="org620155f">Day 11: Monkey in the Middle</h2>
+<div class="outline-text-2" id="text-org620155f">
+<p>
+Summary: Monkeys are playing Keep Away with your stuff! There's a pattern in how
+they are throwing your items based on how worried you are about the item.
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt"><code>Monkey 0:
+  Starting items: 79, 98
+  Operation: new = old * 19
+  Test: divisible by 23
+    If true: throw to monkey 2
+    If false: throw to monkey 3
+
+Monkey 1:
+  Starting items: 54, 65, 75, 74
+  Operation: new = old + 6
+  Test: divisible by 19
+    If true: throw to monkey 2
+    If false: throw to monkey 0
+
+Monkey 2:
+  Starting items: 79, 60, 97
+  Operation: new = old * old
+  Test: divisible by 13
+    If true: throw to monkey 1
+    If false: throw to monkey 3
+
+Monkey 3:
+  Starting items: 74
+  Operation: new = old + 3
+  Test: divisible by 17
+    If true: throw to monkey 0
+    If false: throw to monkey 1
+</code></pre>
+</div>
+
+<p>
+Every time a monkey inspects your item, your <i>worry level</i> for that item
+increases by the functions provided in the input. Your <i>worry level</i> is then
+divided by <code>3</code> because of your relief that the monkey did not damage the item.
+</p>
+
+<p>
+In a <i>turn</i> a monkey inspects all of your items in order. For each item it
+adjusts the <i>worry level</i> and then throws it based on the <i>test</i>.
+</p>
+
+<p>
+A monkey's turn ends if it has no (more) items.
+</p>
+
+<p>
+A <i>round</i> consists of all monkeys taking one full turn in order.
+</p>
+
+<p>
+The level of <i>monkey business</i> is the product of the amount of items that the
+<i>two most active</i> monkeys have inspected.
+</p>
+
+<p>
+What is the level of <i>monkey business</i> after 20 rounds?
+</p>
+
+<p>
+Read the full description <a href="https://adventofcode.com/2022/day/11">here</a>.
+</p>
+
+<p>
+This is another one of those problems where parsing is quite a big part of the
+problem. We'll keep track of the monkeys in an array of <code>Monkey</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>type Monkey = {
+    Items: int64 list
+    Operation: int64 -&gt; int64
+    Test: int;
+    IfTrue: int;
+    IfFalse: int;
+}
+</code></pre>
+</div>
+
+<p>
+With operations such as <code>old * 19</code> and <code>old * old</code> I expect numbers to become
+quite big, hence <code>int64</code>. We'll store operations as functions, so it's easy
+apply them.
+</p>
+
+<p>
+Parsing an operatio is a little involved. We need the final two words of the
+line. Then we can match and determine the function to store.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let parseOperation (str: string) =
+    let finalTwoElements =
+        str |&gt; String.split |&gt; Array.rev |&gt; Array.take 2
+    match finalTwoElements with
+    | [|num; op|] -&gt;
+        if num = "old" then (fun n -&gt; n * n)
+        elif op = "+" then ((+) (Int64.parse num))
+        else ((*) (Int64.parse num))
+    | _ -&gt; failwith $"Failed to parse operation: {str}"
+</code></pre>
+</div>
+
+<p>
+Parsing the rest of the monkey is also a little involved. There are three lines
+where we're interested in the last word, as an integer. We'll write a helper,
+<code>lastAsInt</code>, which does just that.
+</p>
+
+<p>
+We're not interested in the first line of the monkey, so we skip it. Then we'll
+take the next five lines. The <code>items</code> line we can split on the colon, discard
+the first section, <i>then</i> split on comma and map the resulting array to an
+<code>int64</code> list. The other fields are straight forward.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let parseMonkey (input: string list) =
+    let lastAsInt str = str |&gt; String.split |&gt; Array.last |&gt; Int32.parse
+    match input |&gt; List.skip 1 with
+    | [items;operation;test;ifTrue;ifFalse] -&gt;
+        {
+            Items = items |&gt; String.splitOn [|':'|] |&gt; Array.last |&gt; String.splitOn [|','|] |&gt; Array.map Int64.parse |&gt; Array.toList;
+            Operation = parseOperation operation;
+            Test = lastAsInt test;
+            IfTrue = lastAsInt ifTrue;
+            IfFalse = lastAsInt ifFalse;
+        }
+    | _ -&gt; failwith "Failed to parse monkey"
+</code></pre>
+</div>
+
+<p>
+Now let's start inside out. A <i>round</i> consists of every monkey taking a
+<i>turn</i>. A monkey will adjust the <i>worry level</i> and then <i>throw an item</i>.
+</p>
+
+<p>
+First we introduce a helper for throwing an item. It simply adds the item to the
+target monkey. It <i>could</i> also remove the item from the source monkey, but we
+can also simply set the monkey's item list to an empty list at the very end.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let throwItem n item monkeys =
+    monkeys
+    |&gt; Array.updateAt n { monkeys[n] with Items = List.append monkeys[n].Items [item] }
+</code></pre>
+</div>
+
+<p>
+Next we'll peform the entire <i>turn</i>. For every item we calculate the new <i>worry
+level</i>. Then we test if the item is divisible by the monkey's <code>Test</code>
+criterium. A number is divisible by <code>n</code> if <code>number % n = 0</code>. Finally we throw
+the item and update our array of monkeys.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let monkeysAfterThrowing =
+    List.fold (fun monkeys item -&gt;
+        let worry =  (monkey.Operation item) / 3L
+
+        if worry % int64 monkey.Test = 0 then throwItem monkey.IfTrue worry monkeys
+        else throwItem monkey.IfFalse worry monkeys) monkeys monkey.Items
+</code></pre>
+</div>
+
+<p>
+For the final bookkeeping we need to empty the monkey's item list <i>and</i> count
+how many items the monkey has inspected. We do the latter in a separate array
+called <code>counts</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let turn index counts monkeys =
+    let monkey = monkeys[index]
+
+    // snip
+
+    (counts |&gt; Array.updateAt index (counts[index] + (int64)(List.length monkey.Items)),
+    Array.updateAt index { monkeysAfterThrowing[index] with Items = [] } monkeysAfterThrowing)
+</code></pre>
+</div>
+
+<p>
+Finally we can implement a <i>round</i>. Since we did not store monkey identifiers,
+we need the index of the monkey. Then we just fold over the indexed array,
+updating <code>counts</code> and <code>monkeys</code> as we go.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let rec round counts monkeys =
+    monkeys |&gt; Array.indexed
+    |&gt; Array.fold (fun (counts, monkeys) (n, _) -&gt; turn n counts monkeys) (counts, monkeys)
+</code></pre>
+</div>
+
+<p>
+With all the plumbing implemented we can put it all together. We'll run 20
+rounds, get only the <code>counts</code>, sort them, take the top 2 and take their product.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>[1..20]
+|&gt; List.fold (fun (counts, monkeys) _ -&gt; round counts monkeys) (counts, monkeys)
+|&gt; fst
+|&gt; Array.sortDescending |&gt; Array.take 2 |&gt; Array.fold (*) 1L
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb50683d" class="outline-2">
+<h2 id="orgb50683d">Part 2</h2>
+<div class="outline-text-2" id="text-orgb50683d">
+<p>
+Summary: You are worried that you're never going to get your items back. So
+worried, in fact, that your <i>worry level</i> is no longer divided by <code>3</code>! Your
+<i>worry level</i> will spiral out of control.
+</p>
+
+<p>
+With this new rule, determine the level of <i>monkey business</i> after 10000 rounds.
+</p>
+
+<p>
+Let's get the obvious out of the way first. Most if not all of your items are
+going to be in the hands of a monkey that will multiply the <i>worry level</i> by
+itself. 10000 times. That number will get so large that calculating the
+divisibility will be too slow. So now that we're no longer dividing the <i>worry
+level</i> by <code>3</code>, we need another way to adjust it.
+</p>
+
+<p>
+Other than that our code remains the same, though. We can take our solution to
+part 1, pass a new adjust function for the <i>worry level</i> and pass the amount of
+<i>rounds</i> and run with it.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let worry = worryControlFn &lt;| monkey.Operation item
+assert(worry &gt;= 0L)
+</code></pre>
+</div>
+
+<p>
+We'll also ensure that we don't get an overflow.
+</p>
+</div>
+<div id="outline-container-orga15242f" class="outline-3">
+<h3 id="orga15242f">Maintaining a reasonable worry level</h3>
+<div class="outline-text-3" id="text-orga15242f">
+<p>
+So how do we maintain a reasonably worry level?
+</p>
+
+<p>
+In part 1 we used the fact that a number <code>a</code> is divisble by <code>n</code> if <code>a % n =
+0</code>. That still applies here. If <code>a</code> is very large and subtract <code>n</code> from it one
+time that does not change the remainder. <code>(a - n) % n = a % n</code>. If we remove <code>n</code>
+so often that only the remainder remains, this is still true. <code>(a % n) % n = a %
+n</code>.
+</p>
+
+<p>
+Unfortunately there's more than one monkey and their divisors are different. So
+we cannot reduce the <i>worry level</i> to <code>worry % divisor</code>.
+</p>
+
+<p>
+For example: <code>12 % 5 = (12 - 5) % 5 = 2</code>. <code>2 % 5</code> is still <code>2</code>. But if another
+monkey has divisor <code>m = 7</code>, then <code>12 % 7 = 5</code> while <code>(12 - 5) % 7 = 0</code>.
+</p>
+
+<p>
+It turns out we can solve this by storing the remainder of dividing by a number
+that is divisible by both <code>5</code> <i>and</i> <code>7</code>. We can do this because if a number is
+divisble by a multiple of <code>n</code>, it's also divisible by <code>n</code>.
+</p>
+
+<p>
+To get this number for <i>all</i> the monkeys, we need to multiply <i>all</i> of their
+divisors. We want to make this number as small as possible. The smallest number
+in the above example is indeed <code>5 * 7 = 35</code>, but if the numbers were <code>2</code> and
+<code>8</code>, then, since <code>8</code> is already a multiple of <code>2</code>, that number would be <code>2</code>. It
+turns out that in the input all divisors are prime, and so the lowest common
+multiple is, indeed, all of them multiplied together.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let product = monkeys |&gt; Array.map (fun m -&gt; int64 m.Test) |&gt; Array.fold (*) 1L
+</code></pre>
+</div>
+
+<p>
+Our <i>worry level</i> adjusting function then becomes <code>worry = worry % product</code>.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org2583214" class="outline-2">
+<h2 id="org2583214">Improvements</h2>
+<div class="outline-text-2" id="text-org2583214">
+<p>
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using <code>for</code>-loops and mutation and then refactor the
+mutation away, changing the <code>for</code>-loop into a <code>fold</code> or a <code>scan</code>.
+</p>
+
+<p>
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+</p>
+
+<p>
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something <i>new</i> then it will still end up in this section.
+</p>
+</div>
+</div>
+<div id="outline-container-org3a18961" class="outline-2">
+<h2 id="org3a18961">Reflection</h2>
+<div class="outline-text-2" id="text-org3a18961">
+<p>
+I wasn't feeling it today. Not even a little. Eventually I opened my laptop at
+about 23:00. Part 1 was relatively straight forward. For part 2 it took longer
+than I've liked to realise the modulo trick. It shows my rustiness in problem
+solving.
+</p>
+
+<p>
+On to the next one!
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day11.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

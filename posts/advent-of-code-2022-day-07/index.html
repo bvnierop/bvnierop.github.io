@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2026-09-26 Sat 15:14 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Advent Of Code 2022 - Day 07</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"> <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css"> <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content" class="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 07</h1>
+<p class="subtitle" role="doc-subtitle">Dec 07, 2022 · Tags: <a href="../tags/fsharp">fsharp</a> | <a href="../tags/advent-of-code">advent-of-code</a></p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+<div id="outline-container-org0762491" class="outline-2">
+<h2 id="org0762491">Day 07: No Space Left On Device</h2>
+<div class="outline-text-2" id="text-org0762491">
+<p>
+Summary: We're given the output of a terminal, a bit similar to a real one. The
+commands in this terminal are <code>cd</code> and <code>ls</code>.
+</p>
+
+<p>
+<code>cd /</code> changes dir to root. <code>cd foo</code> moves a directory <i>deeper</i>. <code>cd ..</code> moves
+out a directory. <code>ls</code> lists the content of the directory. Subdirectories are
+listed as <code>dir name</code>, files are listed as <code>size-in-bytes name</code>.
+</p>
+
+<p>
+The <i>size</i> of a directory is the size of all of its files plus the size of all
+of its subdirectories.
+</p>
+
+<p>
+We're asked to give the sum of the size of all the directories with a size of at
+most 100000.
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt"><code>$ cd /
+$ ls
+dir a
+14848514 b.txt
+8504156 c.dat
+dir d
+$ cd a
+$ ls
+dir e
+29116 f
+2557 g
+62596 h.lst
+$ cd e
+$ ls
+584 i
+$ cd ..
+$ cd ..
+$ cd d
+$ ls
+4060174 j
+8033020 d.log
+5626152 d.ext
+7214296 k
+</code></pre>
+</div>
+
+<p>
+Find the full description <a href="https://adventofcode.com/2022/day/7">here</a>.
+</p>
+
+<p>
+The full problem statement nudges us in the direction of taking the input and
+using it to build a tree representing the directory and file structure and then
+run calculations on that tree.
+</p>
+
+<p>
+That's a solid idea, but we can go for an easier solution. The only thing we're
+being asked about is the <i>size of each directory</i>. The <i>contents</i> are not
+relevant, other than to calculate the size.
+</p>
+
+<p>
+So what we can do is go over each line of the input and follow the <code>cd</code>
+directions to update <i>the current path</i>. Then if we see a line containing a
+size, we update the size of the current directory <i>as well as the sizes of all
+of the parent directories.</i>
+</p>
+
+<p>
+When we're done we will have a dictionary with paths as keys and sizes are
+values.
+</p>
+
+<p>
+Like several times before in this year's Advent of Code, I started with a
+version with mutation.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let calculateSizes (lines: string list) =
+    let mutable pwd = []
+    let mutable sizes = Map.empty
+    for line in lines do
+        match line.Split(" ") with
+        | [|"$"; "cd"; ".."|] -&gt; pwd &lt;- List.tail pwd
+        | [|"$"; "cd"; dirName|] -&gt; pwd &lt;- dirName :: pwd
+        | [|"$"; "ls"|] -&gt; ()
+        | [|"dir"; _|] -&gt; ()
+        | [|sizeStr; _|] -&gt;
+            let size = Int32.Parse(sizeStr)
+            sizes &lt;- updateSizes pwd size sizes 
+        | _ -&gt; failwith "Failed to parse"
+    sizes
+</code></pre>
+</div>
+
+<p>
+In F# you can use lists as keys of a map. If that's not possible, you can just
+as easily concatenate the parts separated by slashes.
+</p>
+
+<p>
+<code>updateSizes</code> is a little bit involved because not only does it update the size
+of the current directory, it also updates the sizes of all parents.
+</p>
+
+<p>
+Since we're storing the path as a list of segments, we can just pop a segment
+and recurse on the remaining segments.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let rec updateSizes pwd size sizes =
+    match pwd with
+    | [] -&gt; sizes   
+    | _::xs -&gt; 
+        let updated = 
+            sizes
+            |&gt; Map.change pwd (fun i -&gt; Some (Option.defaultValue 0 i + size))
+        updateSizes xs size updated
+</code></pre>
+</div>
+
+<p>
+This particular solution makes the assumption that <code>ls</code> is not called on any
+directory twice. It also assumed that <code>cd /</code> is only called at the
+beginning. Both of these assumptions were true for my input (and I verified this
+before basing my solutions on the assumptions). Implementing <code>cd /</code> specifically
+adds just one extra <code>match</code> case.
+</p>
+
+<p>
+To ensure we only process one <code>ls</code> for each directory we can put each path for
+which we've seen an <code>ls</code> into a <code>set</code> and verify that a path we see <code>ls</code> for is
+not in that set yet.
+</p>
+
+<p>
+With the sizes calculated it's easy to find all values smaller than 100000.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let solve1 (input: string list) =
+    input
+    |&gt; calculateSizes
+    |&gt; Map.values
+    |&gt; Seq.filter (fun sz -&gt; sz &lt;= 100000)
+    |&gt; Seq.sum
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org04da94d" class="outline-2">
+<h2 id="org04da94d">Part 2</h2>
+<div class="outline-text-2" id="text-org04da94d">
+<p>
+Summary: Part two is slightly more elaborate. We have to free up space on the
+disk. The disk is 70.000.000 bytes. We need 30.000.000 bytes of free space. What
+is the size of the smallest directory we can delete to have at least 30.000.000
+bytes of free space?
+</p>
+
+<p>
+Since the size of the disk is given, the free space we already have is
+70.000.000 minus the size of the root folder. To get the minimum size of any
+directory we need to delete, we subtract that number from 30.000.000.
+</p>
+
+<p>
+Then we take our list of sizes and find the smallest number equal to or larger
+than that number:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let solve2 (input: string list) =
+    let sizes = calculateSizes input
+    let availableSpace = 70000000 - sizes[["/"]]
+    let spaceNeeded = 30000000 - availableSpace
+
+    sizes
+    |&gt; Map.values
+    |&gt; Seq.filter (fun sz -&gt; spaceNeeded &lt;= sz)
+    |&gt; Seq.min
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org071321a" class="outline-2">
+<h2 id="org071321a">Improvements</h2>
+<div class="outline-text-2" id="text-org071321a">
+<p>
+There wasn't a lot I wanted to improve about today's solution, except of course
+to remove the mutation. Like we've seen before, we can replace the <code>for</code>-loop
+with <code>List.fold</code> and use the variable we're mutating as the state. Since we're
+mutating two variables this time (<code>pwd</code> and <code>sizes</code>), we combine the two in a
+tuple.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let calculateSizes (lines: string list) =
+    let handleLine (pwd, sizes) (line: string) = 
+        match line.Split(" ") with
+        | [|"$"; "cd"; "/"|] -&gt; (["/"], sizes)
+        | [|"$"; "cd"; ".."|] -&gt; (List.tail pwd, sizes)
+        | [|"$"; "cd"; dirName|] -&gt; (dirName :: pwd, sizes)
+        | [|"$"; "ls"|] -&gt; (pwd, sizes)
+        | [|"dir"; _|] -&gt; (pwd, sizes)
+        | [|sizeStr; _|] -&gt;
+            let size = Int32.Parse(sizeStr)
+            (pwd, updateSizes pwd size sizes)
+        | _ -&gt; failwith "Failed to parse"
+
+    let (_, sizes) =
+        lines
+        |&gt; List.fold handleLine ([], Map.empty)
+
+    sizes
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgcf6f48a" class="outline-2">
+<h2 id="orgcf6f48a">Reflection</h2>
+<div class="outline-text-2" id="text-orgcf6f48a">
+<p>
+I liked today. The problem statement is fun. The solution direction that the
+problem statement nudges you into is perfectly fine, although the alternative is
+simpler.
+</p>
+
+<p>
+The entire thing is still not too difficult. It is, however, a bit more involved
+than the previous day. We're getting a bit further in, so it's nice to see a
+problem that's just a tad more challenging.
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day07.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

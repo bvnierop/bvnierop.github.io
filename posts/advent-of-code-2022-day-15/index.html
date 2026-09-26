@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2026-09-26 Sat 15:14 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Advent Of Code 2022 - Day 15: Beacon Exclusion Zone</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"> <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css"> <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content" class="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 15: Beacon Exclusion Zone</h1>
+<p class="subtitle" role="doc-subtitle">Dec 15, 2022 · Tags: <a href="../tags/fsharp">fsharp</a> | <a href="../tags/advent-of-code">advent-of-code</a></p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+<div id="outline-container-orgec2336e" class="outline-2">
+<h2 id="orgec2336e">Day 15: Beacon Exclusion Zone</h2>
+<div class="outline-text-2" id="text-orgec2336e">
+<p>
+Summary: Given is a list of sensors and a beacon that is closest to the sensor,
+in integer 2D coordinates. Sensors can only lock on to the beacon closest to
+them as measured by the Manhattan distance.
+</p>
+
+<p>
+On row <code>y=2000000</code>, how many <code>x</code>-positions cannot possibly contain a beacon?
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt"><code>Sensor at x=2, y=18: closest beacon is at x=-2, y=15
+Sensor at x=9, y=16: closest beacon is at x=10, y=16
+Sensor at x=13, y=2: closest beacon is at x=15, y=3
+Sensor at x=12, y=14: closest beacon is at x=10, y=16
+Sensor at x=10, y=20: closest beacon is at x=10, y=16
+Sensor at x=14, y=17: closest beacon is at x=10, y=16
+Sensor at x=8, y=7: closest beacon is at x=2, y=10
+Sensor at x=2, y=0: closest beacon is at x=2, y=10
+Sensor at x=0, y=11: closest beacon is at x=2, y=10
+Sensor at x=20, y=14: closest beacon is at x=25, y=17
+Sensor at x=17, y=20: closest beacon is at x=21, y=22
+Sensor at x=16, y=7: closest beacon is at x=15, y=3
+Sensor at x=14, y=3: closest beacon is at x=15, y=3
+Sensor at x=20, y=1: closest beacon is at x=15, y=3
+</code></pre>
+</div>
+
+<p>
+For the sample input, take <code>y=10</code> instead.
+</p>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/15">here</a>.
+</p>
+
+<p>
+A tile cannot contain a beacon if it's inside the range of any sensor, <i>unless</i>
+it already contains a beacon. That is because if there was a beacon inside the
+range of a sensor, the range of that sensor would be smaller and another beacon
+would fall outside the range.
+</p>
+
+<p>
+Given the constaints of the problem statement we have to fear that part two is
+going to ask us to find the same number for many rows, say between <code>0</code> and
+<code>200000</code>. So we have to be smarter than just counting every single <code>x</code> position.
+</p>
+
+<p>
+Instead we can define the range for all sensors at a given X position, in the
+form <code>(firstX, lastX)</code>, where the range will <i>include</i> <code>lastX</code>. We can
+then merge those ranges and find their lengths. Two ranges can be merged if they
+either overlap or are adjacent to each other.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let mergeable (start1, finish1) (start2, finish2) =
+    (not &lt;| isDisjoint (start1, finish1) (start2, finish2))
+    || start2 - finish1 = 1
+</code></pre>
+</div>
+
+<p>
+Two ranges overlap if they are not disjoint. Two ranges are disjoint if one
+range's largest <code>x</code> is smaller than the other's smallest <code>x</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let isDisjoint range range2 =
+    match (range1, range2) with
+    | ((l1, h1), (l2, h2)) when h2 &lt; l1 -&gt; true
+    | ((l1, h1), (l2, h2)) when h1 &lt; l2 -&gt; true
+    | _ -&gt; false
+</code></pre>
+</div>
+
+<p>
+In order to merge two ranges we simply take the smallest <code>x</code> and the largest <code>x</code>
+between them.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let merge (s1, e1) (s2, e2) = ((min s1 s2), (max e1 e2))
+</code></pre>
+</div>
+
+<p>
+In order to merge an entire sequence of ranges we first have to sort them. This
+way we can ensure that if we look at two ranges and they aren't mergeable, no
+other range can be merged with the first one. That, in turn, ensures we only
+have to look at each range at most twice.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let compact (ranges: (int * int) seq) =
+    let sortedRanges = ranges |&gt; Seq.sort
+    Seq.tail sortedRanges
+    |&gt; Seq.fold (fun (head, ranges) nextRange -&gt;
+        if mergable head nextRange then (merge head nextRange, ranges)
+        else (nextRange, (head :: ranges))) (Seq.head sortedRanges, []) 
+    |&gt; (fun (head, ranges) -&gt; head :: ranges)
+    |&gt; List.rev
+</code></pre>
+</div>
+</div>
+<div id="outline-container-orgf3a2682" class="outline-3">
+<h3 id="orgf3a2682">Determining the range of a sensor at row <code>y</code></h3>
+<div class="outline-text-3" id="text-orgf3a2682">
+<p>
+To determine the range of a sensor at any given row, we must first determine
+it's maximum horizontal or vertical range. Since a sensor can scan no further
+than its closest beacon, that range is the Manhattan distance to said beacon.
+</p>
+
+<p>
+The Manhattan distance between two points is the difference between the <code>x</code>
+coordinates plus the difference between the <code>y</code> coordinates. We take the
+absolute value so that we don't have to check which is the larger one.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let manhattanDistance (x1, y1) (x2, y2) = abs (x2 - x1) + abs (y2 - y1)
+</code></pre>
+</div>
+
+<p>
+If the <code>y</code> we are looking it is farther away from the sensor than the maximum
+distance, the sensor has no coverage on that row at all. If it's at <i>precisely</i>
+the maximum distance, it covers 1 tile: the sensor's <code>x</code> coordinate. For every
+row closer to the sensor, that range extends by 1 tile in both directions.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let rangeForSensorAtRow y ((sensorX, sensorY), beacon) =
+    let maxDistance = Point.manhattanDistance (sensorX, sensorY) beacon
+    let distance = abs (sensorY - y)
+    let diff = maxDistance - distance
+    if diff &lt; 0 then None
+    else Some (sensorX - diff, sensorX + diff)
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orga987c66" class="outline-3">
+<h3 id="orga987c66">Putting it together</h3>
+<div class="outline-text-3" id="text-orga987c66">
+<p>
+Since the test input requires us to solve for a different <code>y</code> than the real
+input, we take <code>y</code> as an argument.
+</p>
+
+<p>
+We parse our input to a list of <code>(sensorPoint, beaconPoint)</code> called
+<code>sensorInfo</code>. We need to count the beacons at <code>y</code> because while they are in
+sensor range, they don't count towards the spots where a beacon cannot be. After
+all, there's a beacon!
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let beaconsAtY =
+    sensorInfo
+    |&gt; List.map snd
+    |&gt; List.filter (fun (_bx, by) -&gt; by = y)
+    |&gt; List.distinct |&gt; List.length
+</code></pre>
+</div>
+
+<p>
+Then we take our sensor info, convert it to ranges, select only those sensors
+that have any coverage on the row, collapse the ranges and sum their lengths.
+</p>
+
+<p>
+Finally we subtract the beacons.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let solve y input =
+
+    sensorInfo
+    |&gt; List.map (rangeForSensorAtRow y)
+    |&gt; List.choose id
+    |&gt; Range.compact
+    |&gt; List.sumBy Range.length
+    |&gt; (fun s -&gt; s - beaconsAtY)
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org23e9285" class="outline-2">
+<h2 id="org23e9285">Part 2</h2>
+<div class="outline-text-2" id="text-org23e9285">
+<p>
+Summary: There is a beacon that is not in range of any of the sensors. It's
+inside the area between <code>0,0</code> and <code>4000000,400000</code>. There exists precisely <i>one</i>
+location where it can be. Determine the beacon's <i>tuning frequency</i>, which is
+the <code>x</code> coordinate multiplied by <code>4000000</code> added to the <code>y</code> coordinate.
+</p>
+
+<p>
+For the test input, look at the area between <code>0,0</code> and <code>20,20</code>.
+</p>
+
+<p>
+As predicted, we need to look at a very large area. Is it too large for our
+setup? That depends on how patient you are.
+</p>
+
+<p>
+With the things we've built so far, we can loop over all rows and for each row
+determine the sensor ranges. Since we're looking for a single tile, all rows
+except the row with that tile, must have one range. The offending row will have
+two ranges.
+</p>
+
+<p>
+If we have the same <code>sensorInfo</code> as before, and a <code>maxY</code> that determines the the
+maximum row, here's how that looks:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>{0..maxY}
+|&gt; Seq.pick (fun y -&gt;
+    let ranges =
+        sensorInfo |&gt; List.map (rangeForSensorAtRow y) |&gt; List.choose id
+        |&gt; Range.compact
+    if List.length ranges = 1 then None
+    else Some (int64 y + 4000000L * int64 (ranges |&gt; List.head |&gt; snd |&gt; ((+) 1))))
+</code></pre>
+</div>
+
+<p>
+This has a runtime of about 45 seconds of my machine, which is not very good,
+but it'll do.
+</p>
+</div>
+</div>
+<div id="outline-container-org51b678a" class="outline-2">
+<h2 id="org51b678a">Improvements</h2>
+<div class="outline-text-2" id="text-org51b678a">
+<p>
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using <code>for</code>-loops and mutation and then refactor the
+mutation away, changing the <code>for</code>-loop into a <code>fold</code> or a <code>scan</code>.
+</p>
+
+<p>
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+</p>
+
+<p>
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something <i>new</i> then it will still end up in this section.
+</p>
+</div>
+</div>
+<div id="outline-container-org199e984" class="outline-2">
+<h2 id="org199e984">Reflection</h2>
+<div class="outline-text-2" id="text-org199e984">
+<p>
+When reading today's problem statement I feared that part two would be quite
+hard. Given the large numbers I was surprised that it could be brute forced so
+easily. There exists a <i>much</i> better method, but I lack the time to explore and
+understand it.
+</p>
+
+<p>
+At the same time I would have expected my solution to run faster. 4000000 is a
+large number, but given that I only look at the <i>sensors</i>, and that there are
+only 38 of those at my input, I would have expected a faster runtime. There's
+room for improvement there, too.
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day15.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

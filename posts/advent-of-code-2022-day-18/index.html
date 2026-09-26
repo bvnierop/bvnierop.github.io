@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2026-09-26 Sat 15:14 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Advent Of Code 2022 - Day 18: Boiling Boulders</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"> <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css"> <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content" class="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 18: Boiling Boulders</h1>
+<p class="subtitle" role="doc-subtitle">Dec 18, 2022 · Tags: <a href="../tags/fsharp">fsharp</a> | <a href="../tags/advent-of-code">advent-of-code</a></p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+<div id="outline-container-orga73bea9" class="outline-2">
+<h2 id="orga73bea9">Day 18: Boiling Boulders</h2>
+<div class="outline-text-2" id="text-orga73bea9">
+<p>
+Summary: Given a list of locations of 1x1x1 cubes on a 3D grid, how many sides
+are exposed?
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt"><code>2,2,2
+1,2,2
+3,2,2
+2,1,2
+2,3,2
+2,2,1
+2,2,3
+2,2,4
+2,2,6
+1,2,5
+3,2,5
+2,1,5
+2,3,5
+</code></pre>
+</div>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/18">here</a>.
+</p>
+
+<p>
+After the details and trickiness of the past few days, this is a breath of fresh
+air. Two cubes are adjacent if one coordinate differs by at most one from
+another. If two cubes are adjacent that means that for both of them, one side is
+not exposed. Cubes have six sides. So for the example input, if taken only the
+first two cubes, 10 sides are exposed since they are adjacent.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let isConnected (x1, y1, z1) (x2, y2, z2) =
+    (abs (x1 - x2)) + (abs (y1 - y2)) + (abs (z1 - z2)) = 1
+</code></pre>
+</div>
+
+<p>
+We'll create a helper to generate all unique pairs in a single list. For each
+element in the list, loop over the remaining elements and return their combination
+as a pair. Then recurse on the remaining elements.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let rec pairs list = seq {
+    match list with
+    | x::xs -&gt; for e in xs do yield (x, e)
+               yield! pairs xs
+    | _ -&gt; ()
+}
+</code></pre>
+</div>
+
+<p>
+To determine how many sides are exposed, we count all pairs of connected
+cubes using our <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Lib/Seq.fs"><code>countWhere</code></a> helper. We multiply that number by 2 because when
+two cubes are adjacent, a side is blocked on both of them. Then we subtract that
+number from the total number of sides, which is the amount of cubes times 6.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let solve1 (input: string list) =
+    let blockedSides =
+        input
+        |&gt; List.map parseLine
+        |&gt; List.pairs
+        |&gt; Seq.countWhere (fun (p1, p2) -&gt; isConnected p1 p2)
+
+    List.length input * 6 - blockedSides * 2
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org0bf7cfd" class="outline-2">
+<h2 id="org0bf7cfd">Part 2</h2>
+<div class="outline-text-2" id="text-org0bf7cfd">
+<p>
+Summary: The small 1x1x1 cubes form a bigger shape (a lava droplet) with some
+empty space within. How many sides are exposed on the <i>outside</i> of the shape.
+</p>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/18#part2">here</a> (only if you solved part 1).
+</p>
+
+<p>
+To figure out how many sides are exposed on the outside of the shape we can use
+a <a href="https://en.wikipedia.org/wiki/Flood_fill">flood fill algorithm</a>. What that does is look at all nodes in a graph that are
+reachable from a starting point.
+</p>
+
+<p>
+If we draw an imaginary larger cube around our shape then we can flood fill that
+box and every time a 1x1x1 cube blocks our passage we've seen a side that is
+exposed on the outside.
+</p>
+
+<p>
+We'll start by putting all the points of the lava droplet in a <code>Set</code>. We'll
+offset them by 1 on each axis so that our surrounding cube can start at <code>(0, 0,
+0)</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let lava =
+    input |&gt; List.map parseLine
+    |&gt; List.map (fun (x, y, z) -&gt; PackedPoint.make (x + 1) (y + 1) (z + 1))
+    |&gt; Set.ofSeq
+</code></pre>
+</div>
+
+<p>
+To determine the neighbours of any point we'll just hardcode a list with
+adjacent points. To determine which ones are in our cube we <i>could</i> look at our
+set and determine the max coordinates, but we can also take a sneak peak at our
+input and see that it's smaller than 25x25x25. Then we just hardcode that.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let neighbours (x, y, z) = [
+    (x + 1, y, z); (x - 1, y, z);
+    (x, y + 1, z); (x, y - 1, z);
+    (x, y, z + 1); (x, y, z - 1);
+]
+
+let neighboursInRange point =
+    point |&gt; neighbours
+    |&gt; List.filter (fun (x, y, z) -&gt;
+        0 &lt;= x &amp;&amp; x &lt; 25 &amp;&amp; 0 &lt; y &amp;&amp; y &lt; 25 &amp;&amp; 0 &lt; z &amp;&amp; z &lt; 25)
+</code></pre>
+</div>
+
+<p>
+With that we can write our flood fill. When we look at a cell, we check it's
+neighbours. Cells that are not part of the lava droplet and that we haven't
+<i>flooded</i> yet are <code>air</code> cells. Each part of the lava droplet that's a neighbour
+of the current point, is a side on the surface of that droplet and so we need to
+count it.
+</p>
+
+<p>
+Then we <code>fold</code> over the <code>air</code> cubes, recursively calling our <code>loop</code> in order to
+check the rest of our box. Any cells we look at are added to <code>seen</code> so that we
+don't look at them twice.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let floodFill start =
+    let seen = HashSet.empty |&gt; HashSet.add start
+    let rec loop at cellsSeen lavaSeenCount =
+        let neighbours = neighboursInRange at
+        let air = neighbours |&gt; List.reject (fun pt -&gt; HashSet.contains pt lava)
+        let lavaCount = List.length neighbours - List.length air
+
+        let (lavaSeenAtNeighbours, cellsSeenAtNeighbours) =
+            List.fold (fun (lavaSeenCount, cellsSeen) nextCell -&gt;
+                if HashSet.contains nextCell cellsSeen then (lavaSeenCount, cellsSeen)
+                else loop nextCell &lt;| HashSet.add nextCell cellsSeen &lt;| lavaSeenCount) (lavaSeenCount + lavaCount, cellsSeen) air
+
+        (lavaSeenAtNeighbours, cellsSeenAtNeighbours)
+    loop start seen 0
+</code></pre>
+</div>
+
+<p>
+We then call it using <code>(0, 0, 0)</code> as the starting point to find the solution.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>floodFill (0, 0, 0) |&gt; fst
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgc9adb5f" class="outline-2">
+<h2 id="orgc9adb5f">Improvements</h2>
+<div class="outline-text-2" id="text-orgc9adb5f">
+<p>
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using <code>for</code>-loops and mutation and then refactor the
+mutation away, changing the <code>for</code>-loop into a <code>fold</code> or a <code>scan</code>.
+</p>
+
+<p>
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+</p>
+
+<p>
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something <i>new</i> then it will still end up in this section.
+</p>
+</div>
+</div>
+<div id="outline-container-org2d69dc6" class="outline-2">
+<h2 id="org2d69dc6">Reflection</h2>
+<div class="outline-text-2" id="text-org2d69dc6">
+<p>
+After the last two days, today's problem was a breath of fresh air. A nice and
+easy problem, simple to code up and far fewer details to keep in my head than
+the two days before. Not too bad for a sunday.
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day18.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>

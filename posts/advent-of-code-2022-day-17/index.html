@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2026-09-26 Sat 15:14 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Advent Of Code 2022 - Day 17: Pyroclastic Flow</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"> <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css"> <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header id="preamble" class="status">
+<aside>
+  <a href="/">
+    <img class="avatar" src="/img/photo.jpg"/>
+  </a>
+  <section>
+    I help people solve hard problems. This often involves a computer.
+  </section>
+
+  <nav class="nav">
+    <ul>
+      <li>
+        <a class="nav-item" href="/">Home</a>
+        |
+      </li>
+      <li>
+        <a class="nav-item" href="/posts/">Blog</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="/talks/">Talks</a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://stackoverflow.com/users/2700399/bart-van-nierop">
+          <i class="fab fa-stack-overflow"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://github.com/bvnierop">
+          <i class="fab fa-github-square"></i>
+        </a>
+        |
+      </li>
+
+      <li>
+        <a class="nav-item" href="https://www.linkedin.com/in/bart-van-nierop/">
+          <i class="fab fa-linkedin"></i>
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+</aside>
+</header>
+<main id="content" class="content">
+<header>
+<h1 class="title">Advent Of Code 2022 - Day 17: Pyroclastic Flow</h1>
+<p class="subtitle" role="doc-subtitle">Dec 17, 2022 · Tags: <a href="../tags/fsharp">fsharp</a> | <a href="../tags/advent-of-code">advent-of-code</a></p>
+</header><p>
+It's December. Time for snow, slippery roads, hot chocolate and cozy fire
+places. Also time for <a href="https://adventofcode.com/2022">Advent of Code</a>. An advent calendar with small, daily
+programming puzzles, growing progressively more difficult.
+</p>
+
+<p>
+Every year I participate in a programming language I did not use for Advent of
+Code before, in order to learn new ways of doing things and to challenge
+myself. This year, that language is F#.
+</p>
+<div id="outline-container-org6902bdb" class="outline-2">
+<h2 id="org6902bdb">Day 17: Pyroclastic Flow</h2>
+<div class="outline-text-2" id="text-org6902bdb">
+<p>
+Summary: Given a list of moves, repeating if it runs out, simulate a game of
+<i>Tetris</i>, without removing full lines.
+</p>
+
+<p>
+How high is your tower of rocks (pieces) after <code>2022</code> rocks have fallen?
+</p>
+
+<p>
+Example input:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-txt"><code>&gt;&gt;&gt;&lt;&lt;&gt;&lt;&gt;&gt;&lt;&lt;&lt;&gt;&gt;&lt;&gt;&gt;&gt;&lt;&lt;&lt;&gt;&gt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&gt;&lt;&gt;&gt;&lt;&lt;&gt;&gt;
+</code></pre>
+</div>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/17">here</a>.
+</p>
+
+<p>
+After yesterday's foray into bit masks, today I decided to go for bit masks
+again.
+</p>
+
+<p>
+Tetris rocks have odd shapes. To see if they can move to the left, right or
+down, we have to verify that they have no collision with what's already there,
+be it wall, floor or another piece. If we represent each row as an integer, with
+each individual bit indicating if an index in that row is occupied, then it's
+easy to check if the merger of two rows causes a collision. Specifically, two
+rows can merge if their <i>bitwise AND</i> is <code>0</code>.
+</p>
+
+<p>
+If we represent a falling piece in a vacuum, then we can use this to test both
+vertical movement as well as horizontal movement. A piece can move to the left
+(or right) if the <i>bitwise AND</i> of the row that it's in and the moved piece is
+<code>0</code>.
+</p>
+
+<p>
+Representation of the rocks is a bit tedious. We represent them as a list of
+bit masks, with each entry in the list representing a row. Representing the
+floor and the walls is a lot more straight forward.
+</p>
+
+<p>
+Note that the <i>least significant bit</i> matches up with the <i>left side of the
+chamber</i>. This way we can count indices logically, but when representing the
+binary it's reversed.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let rocks = [
+    [0b1111]
+    [0b010
+     0b111
+     0b010]
+    [0b100
+     0b100
+     0b111]
+    [0b1
+     0b1
+     0b1
+     0b1]
+    [0b11
+     0b11]
+]
+let floor = 0b111111111
+let wall = 0b100000001
+</code></pre>
+</div>
+
+<p>
+We need a circular collection. It seems like this isn't very difficult to do. We
+can turn a sequence circular by first yielding all of it's items and then
+recursively keep doing that.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let circular sequence =
+    let rec items () = seq {
+        for e in sequence do yield e
+        yield! items ()
+    }
+    items ()
+</code></pre>
+</div>
+
+<p>
+It turns out that doing this and then asking a large number of items from it is
+very, very slow. So instead, we build a more efficient one using an array and a
+modulo on the index. The <code>modE</code> function works correctly for negative numbers.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>module CircularCollection =
+    let modE a b = ((a % b) + b) % b
+    type t&lt;'a&gt; = ('a array * int * int)
+    let init (source: 'a seq) =
+        let asArray = Seq.toArray source
+        (asArray, 0, Array.length asArray)
+    let moveNext ((source, index, length): t&lt;'a&gt;) =
+        let nextIndex = modE (index + 1) length
+        (source, nextIndex, length)
+    let item ((source, index, _length): t&lt;'a&gt;) =
+        source[index]
+    let itemAt at ((source, index, length): t&lt;'a&gt;) =
+        let idx = modE (index + at) length
+        source[idx]
+    let index ((_source, index, _length): t&lt;'a&gt;) = index
+    let length ((_source, _index, length): t&lt;'a&gt;) = length
+</code></pre>
+</div>
+
+<p>
+The problem states that a new rock always spawns with three rows between its
+bottom and the top of the current tower, and two tiles from the left wall. We shift
+the rock by three bits to put it in the right spot and add three wall tiles to
+the existing chamber.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let spawn rock chamber =
+    let shiftedRock =
+        rock |&gt; List.map (fun line -&gt; line &lt;&lt;&lt; 3)
+
+    let extendedChamber =
+        rock
+        |&gt; List.fold (fun chamber rock -&gt; wall :: chamber) chamber
+    (shiftedRock, wall :: wall :: wall :: extendedChamber)
+</code></pre>
+</div>
+
+<p>
+We also need a <a href="https://en.wikipedia.org/wiki/Zipper_(data_structure)">zipper</a>. The chamber is represented as a list. As the rock falls
+through the chamber we need to access and change various different points in
+that list. A basic implementation for a list zipper is not very difficult. Note
+that <code>update</code> updates the <i>tail</i> of the zipper.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>module ListZipper =
+    let init (list: 'a list): ('a list * 'a list) = ([], list)
+    let next (head, tail) =
+        match tail with
+        | x::xs -&gt; x :: head, xs
+        | [] -&gt; failwith "Cannot zip next on empty list"
+
+    let prev (head, tail) =
+        match head with
+        | x::xs -&gt; xs, x :: tail
+        | [] -&gt; failwith "Cannot zip prev on empty list"
+
+    let update (updater: 'a list -&gt; 'a list) (head, tail): ('a list * 'a list) = (head, updater tail)
+
+    let hasNext (_head, tail) =
+        match tail with | _x::_xs -&gt; true | _ -&gt; false
+
+    let hasPrev (head, _tail) =
+        match head with | _x::_xs -&gt; true | _ -&gt; false
+
+    let view (_head, tail) = tail
+
+    let rec rebuild (head, tail) =
+        match head with
+        | _x::_xs -&gt; rebuild &lt;| prev (head, tail)
+        | [] -&gt; tail
+</code></pre>
+</div>
+
+<p>
+Next, we need a bunch of helpers. <code>applyJet</code> moves a rock in the direction of
+the jet. <code>isValidPosition</code> checks that the rock can be in the given position in
+the chamber. It does so by checking the <i>bitwise AND</i> of all rows of both itself
+and the part of the chamber it's in. We use <code>Seq.forall2</code> rather than
+<code>List.forall2</code> because <code>Seq</code> stops when the shorter list runs out of elements.
+</p>
+
+<p>
+<code>tryFall</code> tries to move the rock down one position. <code>tryJet</code> attempts to apply a
+jet. <code>tryStep</code> combines the two. Note that if trying a jet fails, the rock
+simply does not move to the side. If falling fails, the rock settles in place
+and we move on to the next rock.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let applyJet jet rock =
+    let fn = match jet with | '&lt;' -&gt; (&gt;&gt;&gt;) | '&gt;' -&gt; (&lt;&lt;&lt;) | _ -&gt; failwith "Invalid jet"
+    rock |&gt; List.map (fun x -&gt; fn x 1)
+
+let isValidPosition rock chamber =
+    Seq.forall2 (fun r c -&gt; r &amp;&amp;&amp; c = 0) &lt;| rock &lt;| ListZipper.view chamber
+
+let tryFall chamber rock =
+    let nextChamberState = ListZipper.next chamber // should always work because we have a floor
+    if isValidPosition rock nextChamberState then Some nextChamberState
+    else None
+
+let tryJet chamber jet rock =
+    let shiftedRock = applyJet jet rock
+    if isValidPosition shiftedRock chamber then Some shiftedRock
+    else None
+
+let tryStep chamber rock jets =
+    let shiftedRock = Option.defaultValue &lt;| rock &lt;| tryJet chamber (CircularCollection.item jets) rock
+    let fallen = tryFall chamber &lt;| shiftedRock
+    (Option.defaultValue chamber fallen, shiftedRock, CircularCollection.moveNext jets, Option.isSome fallen)
+</code></pre>
+</div>
+
+<p>
+Merging uses the <code>update</code> method of our zipper, merging the chamber and the
+rock, putting it into place. We can merge each row by using the <i>bitwise OR</i>
+operator.
+</p>
+
+<p>
+If there are empty rows then we remove them. This ensures both that when we
+spawn the next rock we can blindly add three empty rows as well as that the
+height of our tower is simply the amount of rows of the chamber.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let merge chamber rock =
+    chamber
+    |&gt; ListZipper.update (fun tail -&gt;
+            let top = (Seq.map2 (fun c r -&gt; c ||| r) &lt;| tail &lt;| rock) |&gt; Seq.toList
+            let rest = List.skip (List.length rock) tail
+            List.append top rest)
+    |&gt; ListZipper.rebuild
+    |&gt; List.reject ((=) wall)
+</code></pre>
+</div>
+
+<p>
+That in place, we can simulate dropping a single rock. We try a single step. If
+succesful, we recursively try more steps. If not then we merge the rock into the
+current position with the chamber.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let simulateOneRock chamber rocks jets =
+    let rec doSimulate chamber rock jets =
+        let (newChamber, newRock, newJets, success) = tryStep chamber rock jets
+        if success then doSimulate newChamber newRock newJets
+        else (merge chamber newRock, CircularCollection.moveNext rocks, newJets)
+    let (rock, chamber) = spawn (CircularCollection.item rocks) chamber
+    doSimulate &lt;| ListZipper.init chamber &lt;| rock &lt;| jets
+</code></pre>
+</div>
+
+<p>
+To simulate multiple falling rocks we simply call <code>Seq.scan</code> on a range. The
+<code>last</code> element in that sequence is the final configuration of our chamber.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let simulateMultipleRocks chamber rocks jets n =
+    {1..n}
+    |&gt; Seq.scan (fun (c, r, j) _i -&gt; simulateOneRock c r j) (chamber, rocks, jets)
+</code></pre>
+</div>
+
+<p>
+To solve, we simulate <code>count = 2022</code> rocks and take the height of the resulting
+chamber, subtracting the floor.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let rockCycle = CircularCollection.init rocks
+let jetCycle = CircularCollection.init jets
+
+simulateMultipleRocks [floor] rockCycle jetCycle count
+|&gt; Seq.last
+|&gt; (fun (c, _, _) -&gt; List.length c - 1)
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb5a8148" class="outline-2">
+<h2 id="orgb5a8148">Part 2</h2>
+<div class="outline-text-2" id="text-orgb5a8148">
+<p>
+Summary: What's the height after 1000000000000 rocks?
+</p>
+
+<p>
+Read the full problem statement <a href="https://adventofcode.com/2022/day/17#part2">here</a> (only if you solved part 1).
+</p>
+
+<p>
+I can't say I didn't see this one coming. There's no way that we can simulate
+the falling of this many rocks, so we have to come up with a better idea.
+</p>
+
+<p>
+We can detect a cycle. If we see the same floor configuration at the same rock
+and the same jet, we've discovered a cycle. We can then divide our large number
+by the amount of rocks in the cycle and multiply that by the height of the
+cycle.
+</p>
+
+<p>
+What remains then are the parts of the tower before the cycle starts, and what
+remains after the last cycle ends but there is no full cycle to the
+1000000000000th rock.
+</p>
+
+<p>
+We can store the floor configuration as a height map. For each column the height
+map represents the distance of the closest occupied tile from the top. The index
+of the rock and the jet are simply integers.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let heightMap (chamber: int list) =
+    let heightForIndex n =
+        chamber |&gt; List.findIndex (fun line -&gt; line &amp;&amp;&amp; (1 &lt;&lt;&lt; n) &lt;&gt; 0)
+    [7..-1..1]
+    |&gt; List.map heightForIndex
+</code></pre>
+</div>
+
+<p>
+Then we create a few helpers to cache what we've seen. For each combination of
+height map, rock index and jet index, we store after how many rocks we've seen
+this configuration for the first time and how high the tower was at that point.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let emptyCache (): Map&lt;(int list * int * int), (int * int)&gt; = Map.empty
+let cacheKey chamber rocks jets = (heightMap chamber, CircularCollection.index rocks, CircularCollection.index jets)
+let inCache chamber rocks jets cache = Map.containsKey (cacheKey chamber rocks jets) cache
+let addToCache index chamber rocks jets cache = Map.add (cacheKey chamber rocks jets) (index, List.length chamber) cache
+let cacheValue chamber rocks jets (cache: Map&lt;(int list * int * int), (int * int)&gt;) = cache[cacheKey chamber rocks jets]
+</code></pre>
+</div>
+
+<p>
+Now we can start finding a cycle. To find a cycle we simulate dropping a rock
+and then checking the cache to see if we've seen the configuration before. If we
+did not see the configuration before then we recursively continue simulating. If
+we did see the configuration before then we found a cycle. We subtract the
+stored height and index from the current height and index and return a tuple
+containing the first time we saw the cycle, the amount of rocks in the cycle and
+the height difference caused by the cycle.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let findCycle () =
+    let rec loop cache index (chamber, rocks, jets) =
+        let (c, r, j) = simulateOneRock chamber rocks jets
+        if not (inCache c r j cache) then loop &lt;| addToCache index c r j cache &lt;| index + 1 &lt;| (c, r, j)
+        else let curHeight = List.length c
+                let (cachedIndex, cachedHeight) = cacheValue c r j cache
+                (cachedIndex, index - cachedIndex, curHeight - cachedHeight)
+    loop &lt;| emptyCache () &lt;| 1 &lt;| ([floor], rockCycle, jetCycle)
+
+let (cStart, cLength, cHeight) = findCycle ()
+</code></pre>
+</div>
+
+<p>
+Next we determine how much we still have to simulate and how much we can
+calculate based on the cycle. <code>pre</code> is the number of rocks to simulate <i>before
+the cycle starts</i>. <code>cycles</code> is the amount of cycles. We mutiply it by the height
+of an individual cycle to determine the total height from cycles. <code>post</code> is the
+amount of steps we still need to simulate after the <i>last</i> cycle.
+</p>
+
+<p>
+The order in which we do this, doesn't matter. If a cycle occurs after <code>n</code>
+rocks, a cycle of the same length and height occurs after <code>n + 1</code> blocks. This
+means we can simulate <code>pre</code> and <code>post</code> together and add the cycles after that.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><code>let pre = cStart
+let cycles = (steps - int64 cStart) / int64 cLength
+let post = int32 &lt;| (steps - int64 cStart) % int64 cLength
+
+let heightFromCycles = cycles * int64 cHeight
+
+let leftToSimulate = pre + post
+
+simulateMultipleRocks [floor] rockCycle jetCycle leftToSimulate
+|&gt; Seq.last
+|&gt; (fun (c, _, _) -&gt; int64 &lt;| List.length c - 1)
+|&gt; ((+) heightFromCycles)
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org54f1de3" class="outline-2">
+<h2 id="org54f1de3">Improvements</h2>
+<div class="outline-text-2" id="text-org54f1de3">
+<p>
+I've noticed that in many posts the improvements are pretty much the same. I
+hack together a solution using <code>for</code>-loops and mutation and then refactor the
+mutation away, changing the <code>for</code>-loop into a <code>fold</code> or a <code>scan</code>.
+</p>
+
+<p>
+In most cases I can also extract the solution to part 1, make one or two things
+slightly configurable and pass those in both parts.
+</p>
+
+<p>
+I'll leave these kinds of improvements out of this section for now and just
+immediately describe them as they've ended up after refactoring. If I learn
+something <i>new</i> then it will still end up in this section.
+</p>
+</div>
+</div>
+<div id="outline-container-org937ab90" class="outline-2">
+<h2 id="org937ab90">Reflection</h2>
+<div class="outline-text-2" id="text-org937ab90">
+<p>
+Today was a fun problem, full of tiny little details. I have to admit that I was
+way to hungover to solve a problem with this many details. I had a hard time
+wrapping my head around basically all of it and spent way too long.
+</p>
+
+<p>
+It would have been a better problem if I did not have a Christmas party the
+night before. But such is life.
+</p>
+
+<p>
+On to the next one!
+</p>
+
+<p>
+The full code for the day is on <a href="https://github.com/bvnierop/advent-of-code-fsharp/blob/main/src/AdventOfCode.Solutions/2022/Day17.fs">GitHub</a>.
+</p>
+</div>
+</div>
+</main>
+<footer id="postamble" class="status">
+&copy; 2021-2025 Bart van Nierop. All rights reserved.
+
+<script data-goatcounter="https://bvnierop.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</footer>
+</body>
+</html>
