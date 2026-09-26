@@ -1,449 +1,307 @@
-;; Required for source code coloring
-(setq org-html-htmlize-output-type 'css)
+;;; publish.el --- Publish bvnierop.github.io -*- lexical-binding: t; -*-
 
-;; (require 'package)
-;; (package-initialize)
-;; (unless package-archive-contents
-;;   (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/") t)
-;;   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-;;   (package-refresh-contents))
-;; (dolist (pkg '(htmlize dash s fsharp-mode))
-;;   (unless (package-installed-p pkg)
-;;     (package-install pkg)))
-
+;;; Dependencies
+(require 'cl-lib)
 (require 'ox-publish)
-(require 's)
-(require 'cl) ; for lexical-let
-(require 'subr-x) ; for string-empty-p and string-trim
+(require 'subr-x)
 
+;;; Paths and constants
+(defconst bvn/project-root (file-name-directory (file-truename (or load-file-name buffer-file-name))))
+(defconst bvn/source-root (file-name-as-directory (expand-file-name "site" bvn/project-root)))
+(defconst bvn/snippet-root (file-name-as-directory (expand-file-name "snippets" bvn/project-root)))
+(defconst bvn/working-root (file-name-as-directory (expand-file-name ".working-copy" bvn/project-root)))
+(defconst bvn/publish-root (file-name-as-directory (expand-file-name ".publish" bvn/project-root)))
+(defconst bvn/working-post-root (expand-file-name "posts" bvn/working-root))
+(defconst bvn/working-talk-root (expand-file-name "talks" bvn/working-root))
+(defconst bvn/working-tag-root (expand-file-name "posts/tags" bvn/working-root))
+(defconst bvn/post-exclusion-regexp "\\`\\(?:index\\.org\\|last-posts\\.org\\|tags/\\)")
+(defconst bvn/talk-exclusion-regexp "\\`index\\.org\\'")
+(defvar bvn/content-by-file (make-hash-table :test #'equal))
 
-;;;;;;;;;;;;;;;;;;;;
-;; Custom export back-end that removes index.html from links
+(defun bvn/normalized-path (path)
+  "Return normalized absolute PATH, resolving existing ancestors and symlinks."
+  (let ((absolute (expand-file-name path)) missing candidate)
+    (setq candidate absolute)
+    (while (not (file-exists-p candidate))
+      (push (file-name-nondirectory (directory-file-name candidate)) missing)
+      (setq candidate (file-name-directory (directory-file-name candidate))))
+    (let ((result (file-truename candidate)))
+      (dolist (part missing result)
+        (setq result (expand-file-name part result))))))
+
+(defun bvn/path-child-p (path root)
+  (let ((p (directory-file-name (bvn/normalized-path path)))
+        (r (directory-file-name (bvn/normalized-path root))))
+    (and (not (equal p r)) (file-in-directory-p p r))))
+
+(defun bvn/guard-working-child (path)
+  (unless (bvn/path-child-p path bvn/working-root)
+    (error "Refusing path %s: required strict child of %s" path bvn/working-root))
+  path)
+
+(defun bvn/guard-disposable-root (path)
+  (let ((p (directory-file-name (bvn/normalized-path path)))
+        (w (directory-file-name (bvn/normalized-path bvn/working-root)))
+        (o (directory-file-name (bvn/normalized-path bvn/publish-root))))
+    (unless (or (equal p w) (equal p o))
+      (error "Refusing disposable path %s: allowed roots are %s and %s" path w o)))
+  path)
+
+(defun bvn/reset-disposable-root (root)
+  "Remove children of allow-listed disposable ROOT, preserving ROOT itself."
+  (bvn/guard-disposable-root root)
+  (make-directory root t)
+  (dolist (child (directory-files root t directory-files-no-dot-files-regexp))
+    (if (or (file-symlink-p child) (not (file-directory-p child)))
+        (delete-file child)
+      (delete-directory child t))))
+
+(defun bvn/reset-generated-tag-subtree ()
+  (bvn/guard-working-child bvn/working-tag-root)
+  (when (file-exists-p bvn/working-tag-root) (delete-directory bvn/working-tag-root t))
+  (make-directory bvn/working-tag-root t))
+
+(defun bvn/write-generated-source (file content)
+  (bvn/guard-working-child file)
+  (make-directory (file-name-directory file) t)
+  (with-temp-file file (insert content)))
+
+;;; HTML export backend
 (defun bvn/blog-html-link (link contents info)
-  (let ((html-link (org-html-link link contents info)))
-    (s-replace "/index.html\">" "\">" html-link)))
-
-(org-export-define-derived-backend 'bvn/blog-html 'html
-  :translate-alist '((link . bvn/blog-html-link)))
-
+  (string-replace "/index.html\">" "\">" (org-html-link link contents info)))
+(org-export-define-derived-backend 'bvn/blog-html 'html :translate-alist '((link . bvn/blog-html-link)))
 (defun bvn/blog-html-publish-to-blog-html (plist filename pub-dir)
-  (org-publish-org-to 'bvn/blog-html filename
-		      (concat (when (> (length org-html-extension) 0) ".")
-			      (or (plist-get plist :html-extension)
-				  org-html-extension
-				  "html"))
-		      plist pub-dir))
+  (org-publish-org-to 'bvn/blog-html filename (concat (when (> (length org-html-extension) 0) ".")
+                                                      (or (plist-get plist :html-extension) org-html-extension "html")) plist pub-dir))
 
-;;;;;;;;;;;;;;;;;;;;
-(defun bvn/read-metadata-from-org-file (filename tag)
-  "Reads metadata from org file FILENAME, specifically the value of TAG"
-  (let ((case-fold-search t))
-    (with-temp-buffer
-      (insert-file-contents filename)
-      (goto-char (point-min))
-      (ignore-errors
-        (progn
-          (search-forward-regexp (format "^\\#\\+%s\\:\s+\\(.+\\)$" tag))
-          (match-string 1))))))
+;;; Metadata and visibility
+(defun bvn/parse-tags (raw)
+  (let (result)
+    (dolist (tag (split-string (or raw "") "[[:space:]]+" t) (nreverse result))
+      (unless (member tag result) (push tag result)))))
 
-(defun bvn/read-post-tags (filename)
-  "Return FILETAGS from FILENAME, de-duplicated in source order."
-  (delete-dups
-   (split-string (or (bvn/read-metadata-from-org-file filename "FILETAGS") "")
-                 "[[:space:]]+" t)))
+(defun bvn/keyword-value (keywords name)
+  (cadr (assoc-string name keywords t)))
 
-(defun bvn/post-draft? (filename)
-  (bvn/read-metadata-from-org-file filename "DRAFT"))
-
-(defun bvn/post-visible-p (filename)
-  "Return non-nil when the post in FILENAME is publicly visible."
-  (and (not (bvn/post-draft? filename))
-       (bvn/post-published? filename)))
-
-(defun bvn/post-future? (filename target-date)
-  "Check if post in FILENAME has a publish date after TARGET-DATE"
-  (let* ((date-string (bvn/read-metadata-from-org-file filename "DATE"))
-         (post-date (org-time-string-to-time date-string)))
-    (when post-date
-      (time-less-p target-date post-date))))
-
-(defun bvn/post-published? (filename)
-  "Check if post in FILENAME should be published based on current date"
-  (not (bvn/post-future? filename (current-time))))
-
-(defconst bvn/working-post-root "./.working-copy/posts")
-(defconst bvn/working-tag-root "./.working-copy/posts/tags")
-(defconst bvn/published-tag-root "./.publish/posts/tags")
-;; This is relative to an Org publishing project's base directory.
-(defconst bvn/post-tags-exclusion-regexp "\\`tags/")
-
-(defun bvn/required-post-metadata (file field value)
-  "Return VALUE, or stop publishing with FILE and FIELD in the diagnostic."
-  (unless (and value (not (string-empty-p (string-trim value))))
-    (error "Post %s has no %s" file field))
+(defun bvn/required-metadata (file field value)
+  (setq value (and value (string-trim value)))
+  (unless (and value (not (string-empty-p value))) (error "%s %s is missing" file field))
   value)
 
-(defun bvn/collect-posts ()
-  "Collect authored post metadata from the working post tree.
-The returned plists contain :file, :title, :date-string, :date, :visible,
-and :tags.  Generated archive and tag sources are deliberately ignored."
-  (unless (file-directory-p bvn/working-post-root)
-    (error "Post root does not exist: %s" bvn/working-post-root))
-  (let ((files (directory-files-recursively bvn/working-post-root "\\`index\\.org\\'"))
-        posts)
-    (dolist (file files)
-      (let ((relative (file-relative-name file bvn/working-post-root)))
-        (unless (or (string= relative "index.org")
-                    (string= relative "last-posts.org")
-                    (string-match-p bvn/post-tags-exclusion-regexp relative))
-          (let* ((title (bvn/required-post-metadata file "TITLE"
-                                                     (bvn/read-metadata-from-org-file file "TITLE")))
-                 (date-string (bvn/required-post-metadata file "DATE"
-                                                           (bvn/read-metadata-from-org-file file "DATE")))
-                 (date (condition-case err
-                           (org-time-string-to-time date-string)
-                         (error (error "Post %s has invalid DATE %S: %s"
-                                       file date-string (error-message-string err)))))
-                 (tags (bvn/read-post-tags file)))
-            (unless date
-              (error "Post %s has invalid DATE %S" file date-string))
-            (push (list :file relative :title title :date-string date-string :date date
-                        :visible (bvn/post-visible-p file)
-                        :tags tags)
-                  posts)))))
-    posts))
+(defun bvn/read-content-metadata (file kind root build-time)
+  "Read all metadata for FILE once and return its content record."
+  (let (keywords)
+    (with-temp-buffer
+      (insert-file-contents file)
+      (org-mode)
+      (setq keywords (org-collect-keywords '("TITLE" "DATE" "DRAFT" "FILETAGS")))
+      (let* ((title (bvn/required-metadata file "TITLE" (bvn/keyword-value keywords "TITLE")))
+             (date-text (bvn/required-metadata file "DATE" (bvn/keyword-value keywords "DATE")))
+             (date (condition-case err (org-time-string-to-time date-text)
+                     (error (error "%s DATE is invalid: %s" file (error-message-string err)))))
+             (draft (bvn/keyword-value keywords "DRAFT"))
+             (visible (and (not (and draft
+                                     (not (string-empty-p (string-trim draft)))))
+                           (not (time-less-p build-time date))))
+             (source (bvn/normalized-path file)))
+        (list :kind kind :source-file source :relative-file (file-relative-name source root)
+              :title title :date date :visible visible
+              :tags (bvn/parse-tags (bvn/keyword-value keywords "FILETAGS")))))))
 
-(defun bvn/sort-posts (posts)
-  "Return POSTS newest first, with paths breaking equal-date ties."
-  (sort (copy-sequence posts)
-        (lambda (left right)
-          (let ((left-date (plist-get left :date))
-                (right-date (plist-get right :date)))
-            (if (equal left-date right-date)
-                (string< (plist-get left :file) (plist-get right :file))
-              (time-less-p right-date left-date))))))
+(defun bvn/content-sorter (records)
+  (sort (copy-sequence records)
+        (lambda (a b) (if (equal (plist-get a :date) (plist-get b :date))
+                          (string< (plist-get a :relative-file) (plist-get b :relative-file))
+                        (time-less-p (plist-get b :date) (plist-get a :date))))))
 
-(defun bvn/render-post-entry (post link)
-  "Render POST as one archive entry pointing at relative LINK."
-  (format "- %s ..... [[file:%s][%s]]"
-          (format-time-string "%Y-%m-%d" (plist-get post :date))
-          link (plist-get post :title)))
-
-(defun bvn/tag-slug (tag)
-  "Make the safe URL component for display tag TAG."
-  (let ((slug (replace-regexp-in-string
-               "\\`-+\\|-+\\'" ""
-               (replace-regexp-in-string "[^a-z0-9]+" "-" (downcase tag)))))
-    (when (string-empty-p slug)
-      (error "Tag %S has an empty slug" tag))
-    slug))
+(defun bvn/collect-content (root kind reserved build-time)
+  (let (result)
+    (dolist (file (directory-files-recursively root "\\`index\\.org\\'"))
+      (let ((relative (file-relative-name file root)))
+        (unless (seq-some (lambda (r) (or (string= relative r) (string-prefix-p r relative))) reserved)
+          (let ((record (bvn/read-content-metadata file kind root build-time)))
+            (puthash (plist-get record :source-file) record bvn/content-by-file)
+            (push record result)))))
+    result))
 
 (defun bvn/tag-groups (posts)
-  "Return validated, display-name-sorted groups for visible POSTS."
   (let ((groups (make-hash-table :test #'equal))
-        (slug-owners (make-hash-table :test #'equal)))
+        (owners (make-hash-table :test #'equal)))
     (dolist (post posts)
       (dolist (tag (plist-get post :tags))
         (let* ((slug (bvn/tag-slug tag))
-               (owner (gethash slug slug-owners)))
+               (owner (gethash slug owners)))
           (when (and owner (not (string= owner tag)))
             (error "Tags %S and %S share slug %S" owner tag slug))
-          (puthash slug tag slug-owners)
-          (puthash tag (cons post (gethash tag groups)) groups))))
+          (puthash slug tag owners)
+          (let ((group (gethash tag groups)))
+            (puthash tag (list :name tag :slug slug
+                               :posts (cons post (plist-get group :posts))) groups)))))
     (let (result)
-      (maphash (lambda (name group-posts)
-                 (push (list :name name :slug (bvn/tag-slug name)
-                             :posts (bvn/sort-posts group-posts)) result))
+      (maphash (lambda (_name group)
+                 (push (plist-put group :posts
+                                  (bvn/content-sorter (plist-get group :posts))) result))
                groups)
-      (sort result (lambda (left right)
-                     (let ((a (plist-get left :name)) (b (plist-get right :name)))
-                       (if (string= (downcase a) (downcase b))
-                           (string< a b)
-                         (string< (downcase a) (downcase b)))))))))
+      (sort result
+            (lambda (a b)
+              (let ((x (plist-get a :name)) (y (plist-get b :name)))
+                (if (string= (downcase x) (downcase y))
+                    (string< x y)
+                  (string< (downcase x) (downcase y)))))))))
 
-(defun bvn/generate-tag-pages (groups)
-  "Replace generated tag source and output trees, then write GROUPS."
-  (when (file-exists-p bvn/working-tag-root) (delete-directory bvn/working-tag-root t))
-  (when (file-exists-p bvn/published-tag-root) (delete-directory bvn/published-tag-root t))
-  (make-directory bvn/working-tag-root t)
-  (dolist (group groups)
-    (let* ((slug (plist-get group :slug))
-           (directory (expand-file-name slug bvn/working-tag-root))
-           (file (expand-file-name "index.org" directory)))
-      (make-directory directory t)
-      (with-temp-file file
-        (insert (format "#+TITLE: Posts tagged: %s\n\n" (plist-get group :name)))
-        (dolist (post (plist-get group :posts))
-          (insert (bvn/render-post-entry post
-                                         (concat "../../" (plist-get post :file))) "\n"))))))
+(defun bvn/tag-slug (tag)
+  (let ((slug (replace-regexp-in-string "\\`-+\\|-+\\'" ""
+                                        (replace-regexp-in-string "[^a-z0-9]+" "-" (downcase tag)))))
+    (if (string-empty-p slug) (error "Tag %S has an empty slug" tag) slug)))
 
-(defun bvn/publish-posts-last-posts-sitemap (_title _sitemap)
-  "Generate the complete visible post list included by the home page."
-  (mapconcat (lambda (post) (bvn/render-post-entry post (plist-get post :file)))
-             (bvn/sort-posts (cl-remove-if-not (lambda (post) (plist-get post :visible))
-                                                (bvn/collect-posts)))
-             "\n"))
+(defun bvn/build-content-model ()
+  (setq bvn/content-by-file (make-hash-table :test #'equal))
+  (let* ((now (current-time))
+         (posts (bvn/collect-content bvn/working-post-root 'post '("index.org" "last-posts.org" "tags/") now))
+         (talks (bvn/collect-content bvn/working-talk-root 'talk '("index.org" "last-talks.org") now))
+         (visible-posts (bvn/content-sorter (cl-remove-if-not (lambda (x) (plist-get x :visible)) posts)))
+         (visible-talks (bvn/content-sorter (cl-remove-if-not (lambda (x) (plist-get x :visible)) talks)))
+         (groups (bvn/tag-groups visible-posts)))
+    (list :posts posts :visible-posts visible-posts :talks talks :visible-talks visible-talks :tag-groups groups)))
 
+(defun bvn/content-record-for-file (file kind)
+  (let ((record (gethash (bvn/normalized-path file) bvn/content-by-file)))
+    (unless (and record (eq (plist-get record :kind) kind))
+      (error "No %s content record for %s" kind file))
+    record))
+
+;;; Archive rendering
+(defun bvn/render-archive-entry (record generated-file)
+  (format "- %s ..... [[file:%s][%s]]" (format-time-string "%Y-%m-%d" (plist-get record :date))
+          (file-relative-name (plist-get record :source-file) (file-name-directory generated-file))
+          (plist-get record :title)))
+(defun bvn/render-list (records generated-file)
+  (mapconcat (lambda (r) (bvn/render-archive-entry r generated-file)) records "\n"))
 (defun bvn/render-tag-columns (groups)
-  "Render sorted tag GROUPS as the original list, flowing in two columns."
-  (concat "#+ATTR_HTML: :style columns:2\n"
-          (mapconcat (lambda (group)
-                       (format "- [[file:tags/%s/index.org][%s]]"
-                               (plist-get group :slug) (plist-get group :name)))
-                     groups "\n")))
+  (concat "#+ATTR_HTML: :style columns:2\n" (mapconcat (lambda (g) (format "- [[file:tags/%s/index.org][%s]]" (plist-get g :slug) (plist-get g :name))) groups "\n")))
 
-(defun bvn/publish-posts-index-sitemap (_title _sitemap)
-  "Generate the post archive and its filtered tag archive sources."
-  (let* ((posts (bvn/sort-posts
-                 (cl-remove-if-not (lambda (post) (plist-get post :visible))
-                                   (bvn/collect-posts))))
-         (groups (bvn/tag-groups posts)))
-    (bvn/generate-tag-pages groups)
-    (concat "#+TITLE: Posts archive\n\n* Tags\n"
-            (bvn/render-tag-columns groups)
-            "\n\n* All posts\n"
-            (mapconcat (lambda (post) (bvn/render-post-entry post (plist-get post :file)))
-                       posts "\n")
-            "\n")))
+;;; Post tags
+;;; Generated working-copy pages
+(defun bvn/generate-working-pages (model)
+  (let* ((posts-file (expand-file-name "posts/index.org" bvn/working-root))
+         (last-file (expand-file-name "posts/last-posts.org" bvn/working-root))
+         (talks-file (expand-file-name "talks/index.org" bvn/working-root))
+         (groups (plist-get model :tag-groups)))
+    (bvn/reset-generated-tag-subtree)
+    (bvn/write-generated-source
+     last-file (concat (bvn/render-list (plist-get model :visible-posts) last-file) "\n"))
+    (bvn/write-generated-source
+     posts-file
+     (format "#+TITLE: Posts archive\n\n* Tags\n%s\n\n* All posts\n%s\n"
+             (bvn/render-tag-columns groups)
+             (bvn/render-list (plist-get model :visible-posts) posts-file)))
+    (dolist (group groups)
+      (let ((file (expand-file-name (format "%s/index.org" (plist-get group :slug))
+                                    bvn/working-tag-root)))
+        (bvn/write-generated-source
+         file
+         (format "#+TITLE: Posts tagged: %s\n\n%s\n"
+                 (plist-get group :name)
+                 (bvn/render-list (plist-get group :posts) file)))))
+    (bvn/write-generated-source
+     talks-file
+     (format "#+TITLE: Talks archive\n\n%s\n"
+             (bvn/render-list (plist-get model :visible-talks) talks-file)))))
 
-(defun format-pre/postamble (filename)
-  (list (list "en" (with-temp-buffer
-                     (insert-file-contents (expand-file-name (format "%s" filename) "./snippets"))
-                     (buffer-string)))))
-
-(defun bvn/post-tag-link (filename tag)
-  "Return an Org link from FILENAME to the archive for TAG."
-  (let* ((source (expand-file-name filename))
-         (target (expand-file-name (concat (bvn/tag-slug tag) "/index.org")
-                                   (expand-file-name bvn/working-tag-root)))
-         (relative (file-relative-name target (file-name-directory source))))
-    (format "[[file:%s][%s]]" relative tag)))
-
+;;; HTML publishing helpers
 (defun bvn/format-post-date (time)
-  "Format TIME like the existing date subtitle, with a capitalized month."
-  (let ((date (format-time-string "%b %d, %Y" time)))
-    (concat (upcase (substring date 0 1)) (substring date 1))))
-
-(defun bvn/post-subtitle (project filename)
-  "Return parsed date and, for visible posts, tag links for FILENAME."
-  (let* ((date (bvn/format-post-date (org-publish-find-date filename project)))
-         (content
-          ;; The posts project also publishes its generated sitemap source;
-          ;; unlike authored posts, it has no DATE metadata of its own.
-          (if (or (null (bvn/read-metadata-from-org-file filename "DATE"))
-                  (not (bvn/post-visible-p filename)))
-              date
-            (let ((tags (bvn/read-post-tags filename)))
-              (if (null tags)
-                  date
-                (concat date " · Tags: "
-                        (mapconcat (lambda (tag) (bvn/post-tag-link filename tag))
-                                   tags " | ")))))))
-    (org-element-parse-secondary-string
-     content (org-element-restriction 'keyword))))
-
+  (let ((date (format-time-string "%b %d, %Y" time))) (concat (upcase (substring date 0 1)) (substring date 1))))
+(defun bvn/post-tag-link (record tag)
+  (let* ((target (expand-file-name (format "%s/index.org" (bvn/tag-slug tag)) bvn/working-tag-root))
+         (relative (file-relative-name target (file-name-directory (plist-get record :source-file)))))
+    (format "[[file:%s][%s]]" relative tag)))
+(defun bvn/post-subtitle (filename)
+  (let* ((record (bvn/content-record-for-file filename 'post)) (date (bvn/format-post-date (plist-get record :date)))
+         (text (if (or (not (plist-get record :visible)) (null (plist-get record :tags))) date
+                 (concat date " · Tags: " (mapconcat (lambda (tag) (bvn/post-tag-link record tag)) (plist-get record :tags) " | ")))))
+    (org-element-parse-secondary-string text (org-element-restriction 'keyword))))
 (defun bvn/publish-post-to-html (plist filename pub-dir)
-  (let* ((project (cons "blog" plist))
-         (plist (copy-sequence plist)))
-    (setq plist (plist-put plist :subtitle (bvn/post-subtitle project filename)))
-    (bvn/blog-html-publish-to-blog-html plist filename pub-dir)))
-
+  (let ((copy (copy-sequence plist))) (setq copy (plist-put copy :subtitle (bvn/post-subtitle filename)))
+       (bvn/blog-html-publish-to-blog-html copy filename pub-dir)))
 (defun bvn/publish-talk-to-html (plist filename pub-dir)
-  (let* ((project (cons "blog" plist))
-         (plist (copy-sequence plist)))
-    (setq plist (plist-put plist :subtitle
-                           (bvn/format-post-date
-                            (org-publish-find-date filename project))))
-    (bvn/blog-html-publish-to-blog-html plist filename pub-dir)))
+  (let ((copy (copy-sequence plist)) (record (bvn/content-record-for-file filename 'talk)))
+    (setq copy (plist-put copy :subtitle (bvn/format-post-date (plist-get record :date))))
+    (bvn/blog-html-publish-to-blog-html copy filename pub-dir)))
 
-(defun bvn/publish-last-posts-sitemap (title sitemap)
-  "Filter sitemap entries to be the last 5 posts"
-  (let* ((posts (cdr sitemap))
-         (list (cl-remove-if-not (lambda (post) (car post)) posts)))
-    (concat (format "#+TITLE: %s\n\n" title)
-            (org-list-to-org (cons (car sitemap) list)))))
+;;; Org HTML configuration
+(setq org-html-htmlize-output-type 'css org-html-doctype "html5" org-html-html5-fancy t
+      org-html-head-include-default-style nil org-export-with-sub-superscripts '{}
+      org-html-divs '((preamble "header" "preamble") (content "main" "content") (postamble "footer" "postamble"))
+      org-html-head "<link rel=\"stylesheet\" href=\"https://use.fontawesome.com/releases/v5.15.4/css/all.css\"> <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/light.css\"> <link rel=\"stylesheet\" href=\"/css/style.css\">")
+(defun bvn/html-snippet-format (filename)
+  (list (list "en" (with-temp-buffer (insert-file-contents (expand-file-name filename bvn/snippet-root)) (buffer-string)))))
+(defun bvn/html-project-options ()
+  (list :section-numbers nil :with-toc nil :html-preamble t :html-preamble-format (bvn/html-snippet-format "preamble.html")
+        :html-postamble t :html-postamble-format (bvn/html-snippet-format "postamble.html")))
 
-(defun bvn/sitemap-format-entry (folder)
-  "Creates a function that formats an entry to the sitemap.
-   ~FOLDER~ is the subfolder where the sitemap should be generated,
-   ie \"posts\" or \"talks\""
-  (lexical-let ((f folder))
-    (lambda (entry style project)
-      (let ((file-path (concat "site/" f "/" entry)))
-        (when (and (not (bvn/post-draft? file-path))
-                   (bvn/post-published? file-path))
-          (format "%s ..... [[file:%s][%s]]"
-                  (format-time-string "%Y-%m-%d" (org-publish-find-date entry project))
-                  entry
-                  (org-publish-find-title entry project)))))))
-
-;; html 5
-(setq org-html-doctype "html5"
-      org-html-html5-fancy t)
-
-;; Don't use default styling
-(setq org-html-head-include-default-style nil)
-;; Use my own style instead
-(setq org-html-divs '((preamble  "header" "preamble")
-                      (content   "main"   "content")
-                      (postamble "footer" "postamble")))
-
-(setq org-html-head
-      "<link rel=\"stylesheet\" href=\"https://use.fontawesome.com/releases/v5.15.4/css/all.css\" integrity=\"sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm\" crossorigin=\"anonymous\"> \
-       <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/light.css\"> \
-       <link rel=\"stylesheet\" href=\"/css/style.css\"> \
-	  \
-      <!-- Icons --> \
-      <link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/img/icons/apple-touch-icon.png\"> \
-      <link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"/img/icons/favicon-32x32.png\"> \
-      <link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"/img/icons/favicon-16x16.png\"> \
-      <link rel=\"manifest\" href=\"/img/icons/site.webmanifest\"> \
-      <link rel=\"mask-icon\" href=\"/img/icons/safari-pinned-tab.svg\" color=\"#5bbad5\"> \
-      <link rel=\"shortcut icon\" href=\"/img/icons/favicon.ico\"> \
-      <meta name=\"msapplication-TileColor\" content=\"#da532c\"> \
-      <meta name=\"msapplication-config\" content=\"/img/icons/browserconfig.xml\"> \
-      <meta name=\"theme-color\" content=\"#ffffff\">"
-      )
-
-;; Source coloring
-
-;; Only use subscript and superscripts when the section
-;; after an _ or ^ is enclosed in curly braces.
-(setq org-export-with-sub-superscripts '{})
-
+;;; Publishing projects
 (setq org-publish-project-alist
       (list
        (list "working-copy"
-             :publishing-function 'org-publish-attachment
-             :base-directory "./site"
-             :publishing-directory "./.working-copy"
+             :base-directory bvn/source-root
+             :publishing-directory bvn/working-root
              :recursive t
+             :base-extension ".*"
              :include '("CNAME")
-             :base-extension ".*")
-             
-       (list "posts"									;; name of the project
-             :base-directory "./.working-copy/posts"				;; directory to take files from
-             :base-extension "org"						;; only take files with this extension
-             :publishing-directory "./.publish/posts"	;; output directory
-             :recursive t								;; parse recursively, otherwise only index.org would be parsed
-             :publishing-function 'bvn/publish-post-to-html ;; publish as html
-             ;; Archive and tag pages are exported by their dedicated projects.
-             :exclude "\\`\\(?:index\\.org\\|last-posts\\.org\\|tags/\\)"
-
-             :section-numbers nil
-             :with-toc nil
-
-             :html-preamble t
-             :html-preamble-format (format-pre/postamble "preamble.html")
-             :html-postamble t
-             :html-postamble-format (format-pre/postamble "postamble.html")
-
-             :auto-sitemap t
-             :sitemap-filename "last-posts.org"
-             :sitemap-function 'bvn/publish-posts-last-posts-sitemap
-             :sitemap-style 'list
-             :sitemap-title " "
-             :sitemap-sort-files 'anti-chronologically)
-
-       (list "posts-index"
-             :base-directory "./.working-copy/posts"
-             :base-extension "org"
-             :exclude (concat "\\`last-posts\\.org\\'\\|" bvn/post-tags-exclusion-regexp)
-             :publishing-directory "./.publish/posts"
-             :recursive t
-
-             :publishing-function 'ignore
-
-             :auto-sitemap t
-             :sitemap-filename "index.org"
-             :sitemap-style 'list
-             :sitemap-title "Posts archive"
-             :sitemap-function 'bvn/publish-posts-index-sitemap
-             :sitemap-sort-files 'anti-chronologically)
-
-       (list "post-tags"
-             :base-directory "./.working-copy/posts/tags"
-             :base-extension "org"
-             :publishing-directory "./.publish/posts/tags"
-             :recursive t
-             :publishing-function 'bvn/blog-html-publish-to-blog-html
-
-             :section-numbers nil
-             :with-toc nil
-
-             :html-preamble t
-             :html-preamble-format (format-pre/postamble "preamble.html")
-             :html-postamble t
-             :html-postamble-format (format-pre/postamble "postamble.html"))
-
-       (list "talks"									;; name of the project
-             :base-directory "./.working-copy/talks"				;; directory to take files from
-             :base-extension "org"						;; only take files with this extension
-             :publishing-directory "./.publish/talks"	;; output directory
-             :recursive t								;; parse recursively, otherwise only index.org would be parsed
-             :publishing-function 'bvn/publish-talk-to-html ;; publish as html
-             :exclude "\\`\\(?:index\\.org\\|last-talks\\.org\\)"
-
-             :section-numbers nil
-             :with-toc nil
-
-             :html-preamble t
-             :html-preamble-format (format-pre/postamble "preamble.html")
-             :html-postamble t
-             :html-postamble-format (format-pre/postamble "postamble.html")
-
-             :auto-sitemap t
-             :sitemap-filename "last-talks.org"
-             :sitemap-function 'bvn/publish-last-posts-sitemap
-             :sitemap-format-entry (bvn/sitemap-format-entry "talks")
-             :sitemap-style 'list
-             :sitemap-title " "
-             :sitemap-sort-files 'anti-chronologically)
-
-       (list "talks-index"
-             :base-directory "./.working-copy/talks"
-             :base-extension "org"
-             :exclude (regexp-opt '("last-talks.org"))
-             :publishing-directory "./.publish/talks"
-             :recursive t
-
-             :publishing-function 'ignore
-
-             :auto-sitemap t
-             :sitemap-filename "index.org"
-             :sitemap-style 'list
-             :sitemap-title "Talks archive"
-             :sitemap-function 'bvn/publish-last-posts-sitemap
-             :sitemap-format-entry (bvn/sitemap-format-entry "talks")
-             :sitemap-sort-files 'anti-chronologically)
-
-       (list "pages"
-             :base-directory "./.working-copy"
-             :base-extension ""
-             :exclude (regexp-opt '(".*"))
-             :include '("index.org" "posts/index.org" "talks/index.org")
-             :publishing-directory "./.publish"
-             :recursive t
-
-             :publishing-function 'bvn/blog-html-publish-to-blog-html
-
-             :section-numbers nil
-             :with-toc nil
-
-             :html-preamble t
-             :html-preamble-format (format-pre/postamble "preamble.html")
-             :html-postamble t
-             :html-postamble-format (format-pre/postamble "postamble.html"))
-
+             :publishing-function 'org-publish-attachment)
+       (append
+        (list "posts"
+              :base-directory bvn/working-post-root
+              :base-extension "org"
+              :publishing-directory (expand-file-name "posts" bvn/publish-root)
+              :recursive t
+              :publishing-function 'bvn/publish-post-to-html
+              :exclude bvn/post-exclusion-regexp)
+        (bvn/html-project-options))
+       (append
+        (list "post-tags"
+              :base-directory bvn/working-tag-root
+              :base-extension "org"
+              :publishing-directory (expand-file-name "posts/tags" bvn/publish-root)
+              :recursive t
+              :publishing-function 'bvn/blog-html-publish-to-blog-html)
+        (bvn/html-project-options))
+       (append
+        (list "talks" :base-directory bvn/working-talk-root
+              :base-extension "org" :publishing-directory (expand-file-name "talks"
+                                                                            bvn/publish-root) :recursive t :publishing-function
+              'bvn/publish-talk-to-html :exclude bvn/talk-exclusion-regexp)
+        (bvn/html-project-options))
+       (append
+        (list "pages"
+              :base-directory bvn/working-root
+              :base-extension "org"
+              :publishing-directory bvn/publish-root
+              :recursive t
+              :include '("index.org" "posts/index.org" "talks/index.org")
+              :exclude "\\`\\(?:posts/[^/]+/index\\.org\\|posts/last-posts\\.org\\|talks/[^/]+/index\\.org\\|404\\.org\\)"
+              :publishing-function 'bvn/blog-html-publish-to-blog-html)
+        (bvn/html-project-options))
        (list "assets"
-             :base-directory "./.working-copy"
+             :base-directory bvn/working-root
              :base-extension "css\\|png\\|jpg\\|pdf"
              :include '("CNAME" "robots.txt")
-             :publishing-directory "./.publish"
+             :publishing-directory bvn/publish-root
              :recursive t
-
              :publishing-function 'org-publish-attachment)
-       (list "website" :components (list "working-copy" "posts" "posts-index" "post-tags" "talks" "talks-index" "pages" "assets"))))
+       (list "website"
+             :components '("posts" "post-tags" "talks" "pages" "assets"))))
 
-(org-publish-remove-all-timestamps)
-(org-publish "website" t)
+;;; Build entry point
+(defun bvn/publish-site ()
+  (setq bvn/content-by-file (make-hash-table :test #'equal))
+  (bvn/reset-disposable-root bvn/working-root)
+  (bvn/reset-disposable-root bvn/publish-root)
+  (org-publish-remove-all-timestamps)
+  (org-publish "working-copy" t)
+  (let ((model (bvn/build-content-model)))
+    (bvn/generate-working-pages model)
+    (org-publish "website" t)
+    model))
+
+;;; publish.el ends here

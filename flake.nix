@@ -16,8 +16,6 @@
           siteEmacs =
             (pkgs.emacsPackagesFor pkgs.emacs).emacsWithPackages (epkgs: with epkgs; [
               htmlize
-              dash
-              s
               fsharp-mode
           ]);
 
